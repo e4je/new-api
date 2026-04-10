@@ -46,7 +46,8 @@ func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo) {
 	if info.PriceData.GroupRatioInfo.HasSpecialRatio {
 		other["user_group_ratio"] = info.PriceData.GroupRatioInfo.GroupSpecialRatio
 	}
-	if info.IsModelMapped {
+	// 只有管理员才能看到实际计费模型
+	if info.IsModelMapped && model.IsAdmin(info.UserId) {
 		other["is_model_mapped"] = true
 		other["upstream_model_name"] = info.UpstreamModelName
 	}
@@ -132,7 +133,8 @@ func taskBillingOther(task *model.Task) map[string]interface{} {
 		}
 	}
 	props := task.Properties
-	if props.UpstreamModelName != "" && props.UpstreamModelName != props.OriginModelName {
+	// 只有管理员才能看到实际计费模型
+	if props.UpstreamModelName != "" && props.UpstreamModelName != props.OriginModelName && model.IsAdmin(task.UserId) {
 		other["is_model_mapped"] = true
 		other["upstream_model_name"] = props.UpstreamModelName
 	}

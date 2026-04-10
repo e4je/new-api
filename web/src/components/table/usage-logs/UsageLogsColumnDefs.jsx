@@ -268,7 +268,7 @@ function renderBillingTag(record, t) {
   return null;
 }
 
-function renderModelName(record, copyText, t) {
+function renderModelName(record, copyText, t, isAdminUser = false) {
   let other = getLogOther(record.other);
   let modelMapped =
     other?.is_model_mapped &&
@@ -281,6 +281,14 @@ function renderModelName(record, copyText, t) {
       },
     });
   } else {
+    // 只有管理员才能看到实际计费模型
+    if (!isAdminUser) {
+      return renderModelTag(record.model_name, {
+        onClick: (event) => {
+          copyText(event, record.model_name).then((r) => {});
+        },
+      });
+    }
     return (
       <>
         <Space vertical align={'start'}>
@@ -719,7 +727,7 @@ export const getLogsColumns = ({
           record.type === 2 ||
           record.type === 5 ||
           record.type === 6 ? (
-          <>{renderModelName(record, copyText, t)}</>
+          <>{renderModelName(record, copyText, t, isAdminUser)}</>
         ) : (
           <></>
         );
