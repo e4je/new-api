@@ -20,21 +20,6 @@ jobs:
           - os: windows
             arch: amd64
             runner: windows-latest
-          - os: windows
-            arch: arm64
-            runner: windows-latest
-          - os: linux
-            arch: amd64
-            runner: ubuntu-latest
-          - os: linux
-            arch: arm64
-            runner: ubuntu-latest
-          - os: darwin
-            arch: amd64
-            runner: macos-latest
-          - os: darwin
-            arch: arm64
-            runner: macos-latest
 
     steps:
       - name: Checkout code
@@ -65,6 +50,8 @@ jobs:
 
       - name: Build Frontend
         shell: bash
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
           cd web
           bun install
