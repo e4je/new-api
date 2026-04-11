@@ -62,6 +62,7 @@ func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo) {
 	})
 	model.UpdateUserUsedQuotaAndRequestCount(info.UserId, info.PriceData.Quota)
 	model.UpdateChannelUsedQuota(info.ChannelId, info.PriceData.Quota)
+	IncrementChannelCallCount(info.ChannelId)
 }
 
 // ---------------------------------------------------------------------------
@@ -223,6 +224,7 @@ func RecalculateTaskQuota(ctx context.Context, task *model.Task, actualQuota int
 		logQuota = quotaDelta
 		model.UpdateUserUsedQuotaAndRequestCount(task.UserId, quotaDelta)
 		model.UpdateChannelUsedQuota(task.ChannelId, quotaDelta)
+		IncrementChannelCallCount(task.ChannelId)
 	} else {
 		logType = model.LogTypeRefund
 		logQuota = -quotaDelta

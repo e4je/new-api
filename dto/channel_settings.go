@@ -7,6 +7,9 @@ type ChannelSettings struct {
 	PassThroughBodyEnabled bool   `json:"pass_through_body_enabled,omitempty"`
 	SystemPrompt           string `json:"system_prompt,omitempty"`
 	SystemPromptOverride   bool   `json:"system_prompt_override,omitempty"`
+	// 渠道调用次数限制（按次数计数，1次=$1）
+	HourlyCallLimit int `json:"hourly_call_limit,omitempty"` // 每小时最大调用次数，0 表示不限制
+	WeeklyCallLimit int `json:"weekly_call_limit,omitempty"` // 每周最大调用次数，0 表示不限制
 }
 
 type VertexKeyType string
