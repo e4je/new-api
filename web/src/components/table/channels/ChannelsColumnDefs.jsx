@@ -529,15 +529,23 @@ export const getChannelsColumns = ({
       dataIndex: 'expired_time',
       render: (text, record, index) => {
         if (record.children === undefined) {
-          // 调用限制剩余显示
+          // 解析渠道设置
           let channelSetting = {};
           try {
             channelSetting = typeof record.setting === 'string' ? JSON.parse(record.setting) : (record.setting || {});
           } catch (e) {}
+          
+          // 小时限制剩余
           const hourlyLimit = channelSetting.hourly_call_limit || 0;
           const hasHourlyLimit = hourlyLimit > 0;
           const hourlyCount = record.channel_info?.hourly_call_count || 0;
           const hourlyRemaining = hasHourlyLimit ? Math.max(0, hourlyLimit - hourlyCount) : null;
+
+          // 天限制剩余
+          const dailyLimit = channelSetting.daily_call_limit || 0;
+          const hasDailyLimit = dailyLimit > 0;
+          const dailyCount = record.channel_info?.daily_call_count || 0;
+          const dailyRemaining = hasDailyLimit ? Math.max(0, dailyLimit - dailyCount) : null;
 
           // 总额度模式：剩余 = manual_balance - used_quota
           const hasManualBalance = record.manual_balance !== null && record.manual_balance !== undefined && record.manual_balance > 0;
@@ -591,7 +599,19 @@ export const getChannelsColumns = ({
                       shape='circle'
                       size='small'
                     >
-                      {hourlyRemaining}/{hourlyLimit}次
+                      时:{hourlyRemaining}/{hourlyLimit}
+                    </Tag>
+                  </Tooltip>
+                )}
+                {dailyRemaining !== null && (
+                  <Tooltip content={t('每天调用限制剩余')}>
+                    <Tag
+                      color={dailyRemaining > 0 ? 'orange' : 'red'}
+                      type='light'
+                      shape='circle'
+                      size='small'
+                    >
+                      天:{dailyRemaining}/{dailyLimit}
                     </Tag>
                   </Tooltip>
                 )}

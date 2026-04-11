@@ -69,6 +69,8 @@ type ChannelInfo struct {
 	// 渠道调用次数限制计数（按次数，1次=$1）
 	HourlyCallCount      int   `json:"hourly_call_count,omitempty"`       // 当前小时累计调用次数
 	HourlyCallResetTime  int64 `json:"hourly_call_reset_time,omitempty"`  // 上次重置小时计数的时间戳
+	DailyCallCount       int   `json:"daily_call_count,omitempty"`        // 当前天累计调用次数
+	DailyCallResetTime   int64 `json:"daily_call_reset_time,omitempty"`   // 上次重置天计数的时间戳
 	WeeklyCallCount      int   `json:"weekly_call_count,omitempty"`       // 当前周累计调用次数
 	WeeklyCallResetTime  int64 `json:"weekly_call_reset_time,omitempty"`  // 上次重置周计数的时间戳
 }

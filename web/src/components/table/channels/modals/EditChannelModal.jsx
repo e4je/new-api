@@ -197,6 +197,7 @@ const EditChannelModal = (props) => {
     system_prompt: '',
     system_prompt_override: false,
     hourly_call_limit: 0,
+    daily_call_limit: 0,
     weekly_call_limit: 0,
     settings: '',
     // 仅 Vertex: 密钥格式（存入 settings.vertex_key_type）
@@ -502,6 +503,7 @@ const EditChannelModal = (props) => {
     pass_through_body_enabled: false,
     system_prompt: '',
     hourly_call_limit: 0,
+    daily_call_limit: 0,
     weekly_call_limit: 0,
   });
   const showApiConfigCard = true; // 控制是否显示 API 配置卡片
@@ -857,6 +859,7 @@ const EditChannelModal = (props) => {
           data.system_prompt_override =
             parsedSettings.system_prompt_override || false;
           data.hourly_call_limit = parsedSettings.hourly_call_limit || 0;
+          data.daily_call_limit = parsedSettings.daily_call_limit || 0;
           data.weekly_call_limit = parsedSettings.weekly_call_limit || 0;
         } catch (error) {
           console.error('解析渠道设置失败:', error);
@@ -867,6 +870,7 @@ const EditChannelModal = (props) => {
           data.system_prompt = '';
           data.system_prompt_override = false;
           data.hourly_call_limit = 0;
+          data.daily_call_limit = 0;
           data.weekly_call_limit = 0;
         }
       } else {
@@ -877,6 +881,7 @@ const EditChannelModal = (props) => {
         data.system_prompt = '';
         data.system_prompt_override = false;
         data.hourly_call_limit = 0;
+        data.daily_call_limit = 0;
         data.weekly_call_limit = 0;
       }
 
@@ -2529,26 +2534,37 @@ const EditChannelModal = (props) => {
 
                   <Form.TextArea field='system_prompt' label={t('系统提示词')} placeholder={t('输入系统提示词，用户的系统提示词将优先于此设置')} onChange={(value) => handleChannelSettingsChange('system_prompt', value)} autosize showClear extraText={t('用户优先：如果用户在请求中指定了系统提示词，将优先使用用户的设置')} />
                   <Form.Switch field='system_prompt_override' label={t('系统提示词拼接')} checkedText={t('开')} uncheckedText={t('关')} onChange={(value) => handleChannelSettingsChange('system_prompt_override', value)} extraText={t('如果用户请求中包含系统提示词，则使用此设置拼接到用户的系统提示词前面')} />
-                  <div className='flex gap-3'>
-                    <Form.InputNumber
-                      field='hourly_call_limit'
-                      label={t('每小时调用限制')}
-                      placeholder={t('0 = 不限制')}
-                      min={0}
-                      step={1}
-                      style={{ flex: 1 }}
-                      onChange={(value) => handleChannelSettingsChange('hourly_call_limit', value ?? 0)}
-                      extraText={t('达到限制后自动禁用渠道')}
-                    />
+                  <div className='flex flex-col gap-3'>
+                    <div className='flex gap-3'>
+                      <Form.InputNumber
+                        field='hourly_call_limit'
+                        label={t('每小时调用限制')}
+                        placeholder={t('0 = 不限制')}
+                        min={0}
+                        step={1}
+                        style={{ flex: 1 }}
+                        onChange={(value) => handleChannelSettingsChange('hourly_call_limit', value ?? 0)}
+                        extraText={t('达到限制后自动禁用渠道')}
+                      />
+                      <Form.InputNumber
+                        field='daily_call_limit'
+                        label={t('每天调用限制')}
+                        placeholder={t('0 = 不限制')}
+                        min={0}
+                        step={1}
+                        style={{ flex: 1 }}
+                        onChange={(value) => handleChannelSettingsChange('daily_call_limit', value ?? 0)}
+                        extraText={t('达到限制后自动禁用渠道，过期自动启用')}
+                      />
+                    </div>
                     <Form.InputNumber
                       field='weekly_call_limit'
                       label={t('每周调用限制')}
                       placeholder={t('0 = 不限制')}
                       min={0}
                       step={1}
-                      style={{ flex: 1 }}
                       onChange={(value) => handleChannelSettingsChange('weekly_call_limit', value ?? 0)}
-                      extraText={t('达到限制后自动禁用渠道')}
+                      extraText={t('达到限制后自动禁用渠道，过期自动启用')}
                     />
                   </div>
                 </div>
