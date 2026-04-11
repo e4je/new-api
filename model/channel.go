@@ -66,6 +66,11 @@ type ChannelInfo struct {
 	MultiKeyDisabledTime   map[int]int64         `json:"multi_key_disabled_time,omitempty"`   // key禁用时间列表，key index -> time
 	MultiKeyPollingIndex   int                   `json:"multi_key_polling_index"`             // 多Key模式下轮询的key索引
 	MultiKeyMode           constant.MultiKeyMode `json:"multi_key_mode"`
+	// 渠道调用次数限制计数（按次数，1次=$1）
+	HourlyCallCount      int   `json:"hourly_call_count,omitempty"`       // 当前小时累计调用次数
+	HourlyCallResetTime  int64 `json:"hourly_call_reset_time,omitempty"`  // 上次重置小时计数的时间戳
+	WeeklyCallCount      int   `json:"weekly_call_count,omitempty"`       // 当前周累计调用次数
+	WeeklyCallResetTime  int64 `json:"weekly_call_reset_time,omitempty"`  // 上次重置周计数的时间戳
 }
 
 // Value implements driver.Valuer interface

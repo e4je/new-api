@@ -489,6 +489,53 @@ func SetChannelManualBalance(c *gin.Context) {
 	})
 }
 
+// SetChannelCallLimit 设置渠道调用次数限制
+func SetChannelCallLimit(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	channel, err := model.CacheGetChannel(id)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	var req struct {
+		HourlyCallLimit *int `json:"hourly_call_limit"`
+		WeeklyCallLimit *int `json:"weekly_call_limit"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "请求参数错误",
+		})
+		return
+	}
+
+	setting := channel.GetSetting()
+	if req.HourlyCallLimit != nil {
+		setting.HourlyCallLimit = *req.HourlyCallLimit
+	}
+	if req.WeeklyCallLimit != nil {
+		setting.WeeklyCallLimit = *req.WeeklyCallLimit
+	}
+	channel.SetSetting(setting)
+
+	if err := channel.Save(); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "调用限制已更新",
+		"hourly_call_limit": setting.HourlyCallLimit,
+		"weekly_call_limit": setting.WeeklyCallLimit,
+	})
+}
+
 func updateAllChannelsBalance() error {
 	channels, err := model.GetAllChannels(0, 0, true, false)
 	if err != nil {
