@@ -533,6 +533,16 @@ export const getChannelsColumns = ({
           const hasManualBalance = record.manual_balance !== null && record.manual_balance !== undefined;
           const displayBalance = hasManualBalance ? record.manual_balance : record.balance;
 
+          // 调用限制剩余显示
+          let channelSetting = {};
+          try {
+            channelSetting = typeof record.setting === 'string' ? JSON.parse(record.setting) : (record.setting || {});
+          } catch (e) {}
+          const hourlyLimit = channelSetting.hourly_call_limit || 0;
+          const hasHourlyLimit = hourlyLimit > 0;
+          const hourlyCount = record.channel_info?.hourly_call_count || 0;
+          const hourlyRemaining = hasHourlyLimit ? Math.max(0, hourlyLimit - hourlyCount) : null;
+
           return (
             <div>
               <Space spacing={1}>
@@ -604,6 +614,18 @@ export const getChannelsColumns = ({
                       }}
                     >
                       {t('设')}
+                    </Tag>
+                  </Tooltip>
+                )}
+                {hourlyRemaining !== null && (
+                  <Tooltip content={t('每小时调用限制剩余')}>
+                    <Tag
+                      color={hourlyRemaining > 0 ? 'orange' : 'red'}
+                      type='light'
+                      shape='circle'
+                      size='small'
+                    >
+                      {hourlyRemaining}/{hourlyLimit}次
                     </Tag>
                   </Tooltip>
                 )}
