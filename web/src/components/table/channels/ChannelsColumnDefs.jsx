@@ -529,10 +529,6 @@ export const getChannelsColumns = ({
       dataIndex: 'expired_time',
       render: (text, record, index) => {
         if (record.children === undefined) {
-          // 优先使用手动余额，如果没有则显示自动查询的余额
-          const hasManualBalance = record.manual_balance !== null && record.manual_balance !== undefined;
-          const displayBalance = hasManualBalance ? record.manual_balance : record.balance;
-
           // 调用限制剩余显示
           let channelSetting = {};
           try {
@@ -543,39 +539,25 @@ export const getChannelsColumns = ({
           const hourlyCount = record.channel_info?.hourly_call_count || 0;
           const hourlyRemaining = hasHourlyLimit ? Math.max(0, hourlyLimit - hourlyCount) : null;
 
+          // 总额度模式：剩余 = manual_balance - used_quota
+          const hasManualBalance = record.manual_balance !== null && record.manual_balance !== undefined && record.manual_balance > 0;
+          const usedQuota = record.used_quota || 0;
+          const manualBalanceTotal = hasManualBalance ? record.manual_balance : 0;
+          const manualBalanceRemaining = hasManualBalance ? Math.max(0, manualBalanceTotal - usedQuota) : null;
+
           return (
             <div>
               <Space spacing={1}>
                 <Tooltip content={t('已用额度')}>
                   <Tag color='white' type='ghost' shape='circle'>
-                    {renderQuota(record.used_quota)}
+                    {renderQuota(usedQuota)}
                   </Tag>
                 </Tooltip>
                 {hasManualBalance ? (
-                  <Tooltip content={t('手动设置的余额，点击清空')}>
-                    <InputNumber
-                      size='small'
-                      style={{ width: 80 }}
-                      value={displayBalance}
-                      placeholder='手动'
-                      innerButtons
-                      onBlur={(e) => {
-                        const val = e.target.value;
-                        if (val === '' || val === null) {
-                          setChannelManualBalance(record, null);
-                        } else {
-                          setChannelManualBalance(record, parseFloat(val));
-                        }
-                      }}
-                      onPressEnter={(e) => {
-                        const val = e.target.value;
-                        if (val === '' || val === null) {
-                          setChannelManualBalance(record, null);
-                        } else {
-                          setChannelManualBalance(record, parseFloat(val));
-                        }
-                      }}
-                    />
+                  <Tooltip content={t('剩余 = 总额度 - 已用')}>
+                    <Tag color='green' type='light' shape='circle'>
+                      {renderQuota(manualBalanceRemaining)}
+                    </Tag>
                   </Tooltip>
                 ) : (
                   <Tooltip
@@ -598,22 +580,6 @@ export const getChannelsColumns = ({
                       {record.type === 57
                         ? t('帐号信息')
                         : renderQuotaWithAmount(record.balance)}
-                    </Tag>
-                  </Tooltip>
-                )}
-                {!hasManualBalance && (
-                  <Tooltip content={t('设置手动余额')}>
-                    <Tag
-                      color='blue'
-                      type='ghost'
-                      shape='circle'
-                      size='small'
-                      className='cursor-pointer'
-                      onClick={() => {
-                        setChannelManualBalance(record, 0);
-                      }}
-                    >
-                      {t('设')}
                     </Tag>
                   </Tooltip>
                 )}

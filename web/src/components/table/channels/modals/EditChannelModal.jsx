@@ -186,6 +186,7 @@ const EditChannelModal = (props) => {
     groups: ['default'],
     priority: 0,
     weight: 0,
+    manual_balance: 0,
     tag: '',
     multi_key_mode: 'random',
     // 渠道额外设置的默认值
@@ -2467,6 +2468,19 @@ const EditChannelModal = (props) => {
                         min={0}
                         onNumberChange={(value) => handleInputChange('weight', value)}
                         style={{ width: '100%' }}
+                      />
+                    </Col>
+                  </Row>
+                  <Row gutter={12}>
+                    <Col span={12}>
+                      <Form.InputNumber
+                        field='manual_balance'
+                        label={t('渠道总额度（次数）')}
+                        placeholder={t('0 = 不限制')}
+                        min={0}
+                        onNumberChange={(value) => handleInputChange('manual_balance', value)}
+                        style={{ width: '100%' }}
+                        extraText={t('按次数计算，剩余 = 总额度 - 已用')}
                       />
                     </Col>
                   </Row>
