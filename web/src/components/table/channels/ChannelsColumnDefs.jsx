@@ -567,26 +567,29 @@ export const getChannelsColumns = ({
             record.manual_balance !== null &&
             record.manual_balance !== undefined &&
             Number(record.manual_balance) > 0;
+          // used_quota 是 token 数，转为美元金额显示（1$ = quotaPerUnit tokens）
           const usedQuota = Number(record.used_quota) || 0;
+          const quotaPerUnit = parseFloat(localStorage.getItem('quota_per_unit')) || 500000;
+          const usedQuotaUsd = usedQuota / quotaPerUnit;
           const manualBalanceTotal = hasManualBalance
             ? Number(record.manual_balance) || 0
             : 0;
           const manualBalanceRemaining = hasManualBalance
-            ? Math.max(0, manualBalanceTotal - usedQuota)
+            ? Math.max(0, manualBalanceTotal - usedQuotaUsd)
             : null;
 
           return (
             <div>
               <Space spacing={1}>
-                <Tooltip content={t('已用次数')}>
+                <Tooltip content={t('已用次数（1次=$1）')}>
                   <Tag color='white' type='ghost' shape='circle'>
-                    {renderNumber(usedQuota)}
+                    {renderQuotaWithAmount(usedQuotaUsd)}
                   </Tag>
                 </Tooltip>
                 {hasManualBalance ? (
                   <Tooltip content={t('剩余次数 = 总数量 - 已用数量')}>
                     <Tag color='green' type='light' shape='circle'>
-                      {renderNumber(manualBalanceRemaining)}
+                      {renderQuotaWithAmount(manualBalanceRemaining)}
                     </Tag>
                   </Tooltip>
                 ) : (

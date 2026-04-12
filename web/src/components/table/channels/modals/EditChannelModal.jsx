@@ -838,7 +838,9 @@ const EditChannelModal = (props) => {
         2,
       );
     }
-    data.used_quota = Number(data.used_quota) || 0;
+    // used_quota 后端是 token 数，前端显示为次数（1次=$1）
+    const quotaPerUnit = parseFloat(localStorage.getItem('quota_per_unit')) || 500000;
+    data.used_quota = data.used_quota ? Math.round(Number(data.used_quota) / quotaPerUnit) : 0;
     const chInfo = data.channel_info || {};
     const isMulti = chInfo.is_multi_key === true;
     setIsMultiKeyChannel(isMulti);
@@ -1752,6 +1754,9 @@ const EditChannelModal = (props) => {
       pass_through_body_enabled: localInputs.pass_through_body_enabled || false,
       system_prompt: localInputs.system_prompt || '',
       system_prompt_override: localInputs.system_prompt_override || false,
+      hourly_call_limit: localInputs.hourly_call_limit || 0,
+      daily_call_limit: localInputs.daily_call_limit || 0,
+      weekly_call_limit: localInputs.weekly_call_limit || 0,
     };
     localInputs.setting = JSON.stringify(channelExtraSettings);
 
@@ -1824,6 +1829,17 @@ const EditChannelModal = (props) => {
     }
 
     localInputs.settings = JSON.stringify(settings);
+
+    // used_quota 前端是次数（1次=$1），后端存的是 token 数，需要转换
+    const quotaPerUnit = parseFloat(localStorage.getItem('quota_per_unit')) || 500000;
+    if (localInputs.used_quota !== undefined) {
+      localInputs.used_quota = Math.round(Number(localInputs.used_quota) * quotaPerUnit);
+    }
+
+    // 如果 manual_balance 是 0，不发送给后端（保持为 null）
+    if (localInputs.manual_balance === 0 || localInputs.manual_balance === '' || localInputs.manual_balance === null) {
+      delete localInputs.manual_balance;
+    }
 
     // 清理不需要发送到后端的字段
     delete localInputs.force_format;
@@ -2560,7 +2576,7 @@ const EditChannelModal = (props) => {
                         min={0}
                         step={1}
                         style={{ flex: 1 }}
-                        onChange={(value) => handleChannelSettingsChange('hourly_call_limit', value ?? 0)}
+                        onNumberChange={(value) => handleInputChange('hourly_call_limit', value ?? 0)}
                         extraText={t('达到限制后自动禁用渠道')}
                       />
                       <Form.InputNumber
@@ -2570,7 +2586,7 @@ const EditChannelModal = (props) => {
                         min={0}
                         step={1}
                         style={{ flex: 1 }}
-                        onChange={(value) => handleChannelSettingsChange('daily_call_limit', value ?? 0)}
+                        onNumberChange={(value) => handleInputChange('daily_call_limit', value ?? 0)}
                         extraText={t('达到限制后自动禁用渠道，过期自动启用')}
                       />
                     </div>
@@ -2580,7 +2596,7 @@ const EditChannelModal = (props) => {
                       placeholder={t('0 = 不限制')}
                       min={0}
                       step={1}
-                      onChange={(value) => handleChannelSettingsChange('weekly_call_limit', value ?? 0)}
+                      onNumberChange={(value) => handleInputChange('weekly_call_limit', value ?? 0)}
                       extraText={t('达到限制后自动禁用渠道，过期自动启用')}
                     />
                   </div>
