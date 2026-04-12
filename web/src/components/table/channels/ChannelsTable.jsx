@@ -138,7 +138,7 @@ const ChannelsTable = (channelsData) => {
     <CardTable
       columns={tableColumns}
       dataSource={channels}
-      scroll={compactMode ? undefined : { x: 'max-content' }}
+      scroll={compactMode ? undefined : { x: true }}
       pagination={{
         currentPage: activePage,
         pageSize: pageSize,
