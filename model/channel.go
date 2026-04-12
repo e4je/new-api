@@ -66,13 +66,12 @@ type ChannelInfo struct {
 	MultiKeyDisabledTime   map[int]int64         `json:"multi_key_disabled_time,omitempty"`   // key禁用时间列表，key index -> time
 	MultiKeyPollingIndex   int                   `json:"multi_key_polling_index"`             // 多Key模式下轮询的key索引
 	MultiKeyMode           constant.MultiKeyMode `json:"multi_key_mode"`
-	// 渠道调用次数限制计数（按次数，1次=$1）
-	HourlyCallCount      int   `json:"hourly_call_count,omitempty"`       // 当前小时累计调用次数
-	HourlyCallResetTime  int64 `json:"hourly_call_reset_time,omitempty"`  // 上次重置小时计数的时间戳
-	DailyCallCount       int   `json:"daily_call_count,omitempty"`        // 当前天累计调用次数
-	DailyCallResetTime   int64 `json:"daily_call_reset_time,omitempty"`   // 上次重置天计数的时间戳
-	WeeklyCallCount      int   `json:"weekly_call_count,omitempty"`       // 当前周累计调用次数
-	WeeklyCallResetTime  int64 `json:"weekly_call_reset_time,omitempty"`  // 上次重置周计数的时间戳
+	// 渠道调用次数限制（滑动窗口 + 固定窗口）
+	HourlyCallTimestamps []int64 `json:"hourly_call_timestamps,omitempty"` // 滑动窗口：每次调用的时间戳列表（最近1小时）
+	DailyCallCount       int     `json:"daily_call_count,omitempty"`       // 当天累计调用次数（每天00:00重置）
+	DailyCallResetTime   int64   `json:"daily_call_reset_time,omitempty"`  // 上次重置天计数的时间戳
+	WeeklyCallCount      int     `json:"weekly_call_count,omitempty"`      // 当周累计调用次数（每周一00:00重置）
+	WeeklyCallResetTime  int64   `json:"weekly_call_reset_time,omitempty"` // 上次重置周计数的时间戳
 }
 
 // Value implements driver.Valuer interface

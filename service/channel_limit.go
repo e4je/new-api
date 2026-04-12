@@ -24,32 +24,44 @@ func IncrementChannelCallCount(channelId int) {
 		return // 没有限制，直接返回
 	}
 
-	nowHour := time.Now().Truncate(time.Hour).Unix()
+	now := time.Now().Unix()
 	nowDay := time.Now().Truncate(time.Hour * 24).Unix()
-	nowWeek := time.Now().Truncate(time.Hour * 24 * 7).Unix()
+	// 周一 00:00：time.Weekday(1) = Monday
+	weekday := time.Now().Weekday()
+	daysSinceMonday := (int(weekday) - 1 + 7) % 7
+	mondayMidnight := time.Now().Truncate(time.Hour * 24).AddDate(0, 0, -daysSinceMonday).Unix()
 
 	needUpdate := false
 
-	// === 小时计数 ===
-	if channel.ChannelInfo.HourlyCallResetTime < nowHour {
-		channel.ChannelInfo.HourlyCallCount = 0
-		channel.ChannelInfo.HourlyCallResetTime = nowHour
+	// === 小时计数（滑动窗口：记录每次调用时间戳） ===
+	if channel.ChannelInfo.HourlyCallTimestamps == nil {
+		channel.ChannelInfo.HourlyCallTimestamps = []int64{}
 	}
-	channel.ChannelInfo.HourlyCallCount++
+	// 清理超过1小时的旧记录
+	oneHourAgo := now - 3600
+	validTimestamps := make([]int64, 0, len(channel.ChannelInfo.HourlyCallTimestamps)+1)
+	for _, ts := range channel.ChannelInfo.HourlyCallTimestamps {
+		if ts > oneHourAgo {
+			validTimestamps = append(validTimestamps, ts)
+		}
+	}
+	validTimestamps = append(validTimestamps, now)
+	channel.ChannelInfo.HourlyCallTimestamps = validTimestamps
+	hourlyCount := len(validTimestamps)
 	needUpdate = true
 
 	// 检查小时限制
-	if setting.HourlyCallLimit > 0 && channel.ChannelInfo.HourlyCallCount > setting.HourlyCallLimit {
+	if setting.HourlyCallLimit > 0 && hourlyCount > setting.HourlyCallLimit {
 		DisableChannel(types.ChannelError{
 			ChannelId:   channelId,
 			ChannelType: channel.Type,
 			ChannelName: channel.Name,
 			AutoBan:     true,
-		}, fmt.Sprintf("%s小时调用次数已达上限（%d/%d）", ChannelDisableReasonPrefix, channel.ChannelInfo.HourlyCallCount, setting.HourlyCallLimit))
+		}, fmt.Sprintf("%s小时调用次数已达上限（%d/%d）", ChannelDisableReasonPrefix, hourlyCount, setting.HourlyCallLimit))
 		return
 	}
 
-	// === 天计数 ===
+	// === 天计数（固定窗口：每天00:00重置） ===
 	if channel.ChannelInfo.DailyCallResetTime < nowDay {
 		channel.ChannelInfo.DailyCallCount = 0
 		channel.ChannelInfo.DailyCallResetTime = nowDay
@@ -68,10 +80,10 @@ func IncrementChannelCallCount(channelId int) {
 		return
 	}
 
-	// === 周计数 ===
-	if channel.ChannelInfo.WeeklyCallResetTime < nowWeek {
+	// === 周计数（固定窗口：每周一00:00重置） ===
+	if channel.ChannelInfo.WeeklyCallResetTime < mondayMidnight {
 		channel.ChannelInfo.WeeklyCallCount = 0
-		channel.ChannelInfo.WeeklyCallResetTime = nowWeek
+		channel.ChannelInfo.WeeklyCallResetTime = mondayMidnight
 	}
 	channel.ChannelInfo.WeeklyCallCount++
 	needUpdate = true
@@ -97,14 +109,17 @@ func isChannelLimitDisabled(reason string) bool {
 	return len(reason) > len(ChannelDisableReasonPrefix) && reason[:len(ChannelDisableReasonPrefix)] == ChannelDisableReasonPrefix
 }
 
-// CheckChannelCallLimits 定时任务：重置过期的调用次数计数 + 自动启用过期限制的渠道
+// CheckChannelCallLimits 定时任务：清理过期的调用次数计数 + 自动启用过期限制的渠道
 // 每分钟运行一次
 func CheckChannelCallLimits() {
 	for {
 		time.Sleep(time.Minute)
-		nowHour := time.Now().Truncate(time.Hour).Unix()
+		now := time.Now().Unix()
 		nowDay := time.Now().Truncate(time.Hour * 24).Unix()
-		nowWeek := time.Now().Truncate(time.Hour * 24 * 7).Unix()
+		// 周一 00:00
+		weekday := time.Now().Weekday()
+		daysSinceMonday := (int(weekday) - 1 + 7) % 7
+		mondayMidnight := time.Now().Truncate(time.Hour * 24).AddDate(0, 0, -daysSinceMonday).Unix()
 
 		channels, err := model.GetAllChannels(0, 0, true, true)
 		if err != nil {
@@ -118,47 +133,61 @@ func CheckChannelCallLimits() {
 			}
 
 			needSave := false
+			oneHourAgo := now - 3600
 
-			// 重置过期的计数
-			if channel.ChannelInfo.HourlyCallResetTime < nowHour {
-				channel.ChannelInfo.HourlyCallCount = 0
-				channel.ChannelInfo.HourlyCallResetTime = nowHour
-				needSave = true
+			// 清理小时滑动窗口的过期记录
+			if len(channel.ChannelInfo.HourlyCallTimestamps) > 0 {
+				validTimestamps := make([]int64, 0, len(channel.ChannelInfo.HourlyCallTimestamps))
+				for _, ts := range channel.ChannelInfo.HourlyCallTimestamps {
+					if ts > oneHourAgo {
+						validTimestamps = append(validTimestamps, ts)
+					}
+				}
+				if len(validTimestamps) != len(channel.ChannelInfo.HourlyCallTimestamps) {
+					channel.ChannelInfo.HourlyCallTimestamps = validTimestamps
+					needSave = true
+				}
 			}
+
+			// 重置过期的天计数
 			if channel.ChannelInfo.DailyCallResetTime < nowDay {
 				channel.ChannelInfo.DailyCallCount = 0
 				channel.ChannelInfo.DailyCallResetTime = nowDay
 				needSave = true
 			}
-			if channel.ChannelInfo.WeeklyCallResetTime < nowWeek {
+
+			// 重置过期的周计数
+			if channel.ChannelInfo.WeeklyCallResetTime < mondayMidnight {
 				channel.ChannelInfo.WeeklyCallCount = 0
-				channel.ChannelInfo.WeeklyCallResetTime = nowWeek
+				channel.ChannelInfo.WeeklyCallResetTime = mondayMidnight
 				needSave = true
 			}
 
 			// 自动启用：如果渠道是因为调用限制被禁用的，且限制周期已过，则自动启用
 			if channel.Status == common.ChannelStatusAutoDisabled {
-				// 获取禁用原因
 				otherInfo := channel.GetOtherInfo()
 				statusReason, _ := otherInfo["status_reason"].(string)
 
 				if isChannelLimitDisabled(statusReason) {
-					// 检查是否所有过期的限制都已重置
+					// 计算当前有效计数
+					hourlyCount := len(channel.ChannelInfo.HourlyCallTimestamps)
+					dailyCount := channel.ChannelInfo.DailyCallCount
+					weeklyCount := channel.ChannelInfo.WeeklyCallCount
+
 					canEnable := true
-					if setting.HourlyCallLimit > 0 && channel.ChannelInfo.HourlyCallResetTime < nowHour {
-						canEnable = true // 小时限制已重置
+					if setting.HourlyCallLimit > 0 && hourlyCount >= setting.HourlyCallLimit {
+						canEnable = false
 					}
-					if setting.DailyCallLimit > 0 && channel.ChannelInfo.DailyCallResetTime < nowDay {
-						canEnable = true // 天限制已重置
+					if setting.DailyCallLimit > 0 && dailyCount >= setting.DailyCallLimit {
+						canEnable = false
 					}
-					if setting.WeeklyCallLimit > 0 && channel.ChannelInfo.WeeklyCallResetTime < nowWeek {
-						canEnable = true // 周限制已重置
+					if setting.WeeklyCallLimit > 0 && weeklyCount >= setting.WeeklyCallLimit {
+						canEnable = false
 					}
 
 					if canEnable {
 						EnableChannel(channel.Id, "", channel.Name)
-						// 清空计数和禁用原因
-						channel.ChannelInfo.HourlyCallCount = 0
+						channel.ChannelInfo.HourlyCallTimestamps = []int64{}
 						channel.ChannelInfo.DailyCallCount = 0
 						channel.ChannelInfo.WeeklyCallCount = 0
 						delete(otherInfo, "status_reason")

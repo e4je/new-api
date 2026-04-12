@@ -67,7 +67,9 @@ const getChannelLimitStats = (record) => {
   const hourlyLimit = Number(channelSetting.hourly_call_limit) || 0;
   const dailyLimit = Number(channelSetting.daily_call_limit) || 0;
   const weeklyLimit = Number(channelSetting.weekly_call_limit) || 0;
-  const hourlyCount = Number(record.channel_info?.hourly_call_count) || 0;
+  // 小时计数：滑动窗口，从时间戳数组计算
+  const hourlyTimestamps = record.channel_info?.hourly_call_timestamps || [];
+  const hourlyCount = Array.isArray(hourlyTimestamps) ? hourlyTimestamps.length : 0;
   const dailyCount = Number(record.channel_info?.daily_call_count) || 0;
   const weeklyCount = Number(record.channel_info?.weekly_call_count) || 0;
 
