@@ -34,9 +34,9 @@ func IncrementChannelCallCount(channelId int) {
 	if channel.ChannelInfo.HourlyCallResetTime < nowHour {
 		channel.ChannelInfo.HourlyCallCount = 0
 		channel.ChannelInfo.HourlyCallResetTime = nowHour
-		needUpdate = true
 	}
 	channel.ChannelInfo.HourlyCallCount++
+	needUpdate = true
 
 	// 检查小时限制
 	if setting.HourlyCallLimit > 0 && channel.ChannelInfo.HourlyCallCount > setting.HourlyCallLimit {
@@ -53,9 +53,9 @@ func IncrementChannelCallCount(channelId int) {
 	if channel.ChannelInfo.DailyCallResetTime < nowDay {
 		channel.ChannelInfo.DailyCallCount = 0
 		channel.ChannelInfo.DailyCallResetTime = nowDay
-		needUpdate = true
 	}
 	channel.ChannelInfo.DailyCallCount++
+	needUpdate = true
 
 	// 检查天限制
 	if setting.DailyCallLimit > 0 && channel.ChannelInfo.DailyCallCount > setting.DailyCallLimit {
@@ -72,9 +72,9 @@ func IncrementChannelCallCount(channelId int) {
 	if channel.ChannelInfo.WeeklyCallResetTime < nowWeek {
 		channel.ChannelInfo.WeeklyCallCount = 0
 		channel.ChannelInfo.WeeklyCallResetTime = nowWeek
-		needUpdate = true
 	}
 	channel.ChannelInfo.WeeklyCallCount++
+	needUpdate = true
 
 	// 检查周限制
 	if setting.WeeklyCallLimit > 0 && channel.ChannelInfo.WeeklyCallCount > setting.WeeklyCallLimit {

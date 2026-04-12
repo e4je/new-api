@@ -66,16 +66,21 @@ const getChannelLimitStats = (record) => {
   const channelSetting = parseChannelSetting(record);
   const hourlyLimit = Number(channelSetting.hourly_call_limit) || 0;
   const dailyLimit = Number(channelSetting.daily_call_limit) || 0;
+  const weeklyLimit = Number(channelSetting.weekly_call_limit) || 0;
   const hourlyCount = Number(record.channel_info?.hourly_call_count) || 0;
   const dailyCount = Number(record.channel_info?.daily_call_count) || 0;
+  const weeklyCount = Number(record.channel_info?.weekly_call_count) || 0;
 
   return {
     hourlyLimit,
     dailyLimit,
+    weeklyLimit,
     hourlyCount,
     dailyCount,
+    weeklyCount,
     hourlyRemaining: hourlyLimit > 0 ? Math.max(0, hourlyLimit - hourlyCount) : null,
     dailyRemaining: dailyLimit > 0 ? Math.max(0, dailyLimit - dailyCount) : null,
+    weeklyRemaining: weeklyLimit > 0 ? Math.max(0, weeklyLimit - weeklyCount) : null,
   };
 };
 
@@ -640,6 +645,18 @@ export const getChannelsColumns = ({
                     </Tag>
                   </Tooltip>
                 )}
+                {weeklyRemaining !== null && (
+                  <Tooltip content={t('每周调用限制剩余')}>
+                    <Tag
+                      color={weeklyRemaining > 0 ? 'orange' : 'red'}
+                      type='light'
+                      shape='circle'
+                      size='small'
+                    >
+                      周:{weeklyRemaining}/{weeklyLimit}
+                    </Tag>
+                  </Tooltip>
+                )}
               </Space>
             </div>
           );
@@ -682,6 +699,21 @@ export const getChannelsColumns = ({
           return '-';
         }
         return `${dailyRemaining}/${dailyLimit}`;
+      },
+    },
+    {
+      key: COLUMN_KEYS.WEEKLY_REMAINING,
+      title: t('每周剩余'),
+      dataIndex: 'channel_info',
+      render: (text, record) => {
+        if (record.children !== undefined) {
+          return '-';
+        }
+        const { weeklyLimit, weeklyRemaining } = getChannelLimitStats(record);
+        if (weeklyRemaining === null) {
+          return '-';
+        }
+        return `${weeklyRemaining}/${weeklyLimit}`;
       },
     },
     {
