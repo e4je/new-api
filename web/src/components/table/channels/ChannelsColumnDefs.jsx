@@ -562,7 +562,7 @@ export const getChannelsColumns = ({
       dataIndex: 'expired_time',
       render: (text, record, index) => {
         if (record.children === undefined) {
-          const { hourlyLimit, dailyLimit, hourlyRemaining, dailyRemaining } =
+          const { hourlyLimit, dailyLimit, weeklyLimit, hourlyRemaining, dailyRemaining, weeklyRemaining } =
             getChannelLimitStats(record);
           const hasHourlyLimit = hourlyRemaining !== null;
           const hasDailyLimit = dailyRemaining !== null;
