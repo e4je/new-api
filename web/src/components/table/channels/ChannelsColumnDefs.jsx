@@ -672,51 +672,6 @@ export const getChannelsColumns = ({
       },
     },
     {
-      key: COLUMN_KEYS.HOURLY_REMAINING,
-      title: t('每小时剩余'),
-      dataIndex: 'channel_info',
-      render: (text, record) => {
-        if (record.children !== undefined) {
-          return '-';
-        }
-        const { hourlyLimit, hourlyRemaining } = getChannelLimitStats(record);
-        if (hourlyRemaining === null) {
-          return '-';
-        }
-        return `${hourlyRemaining}/${hourlyLimit}`;
-      },
-    },
-    {
-      key: COLUMN_KEYS.DAILY_REMAINING,
-      title: t('每天剩余'),
-      dataIndex: 'channel_info',
-      render: (text, record) => {
-        if (record.children !== undefined) {
-          return '-';
-        }
-        const { dailyLimit, dailyRemaining } = getChannelLimitStats(record);
-        if (dailyRemaining === null) {
-          return '-';
-        }
-        return `${dailyRemaining}/${dailyLimit}`;
-      },
-    },
-    {
-      key: COLUMN_KEYS.WEEKLY_REMAINING,
-      title: t('每周剩余'),
-      dataIndex: 'channel_info',
-      render: (text, record) => {
-        if (record.children !== undefined) {
-          return '-';
-        }
-        const { weeklyLimit, weeklyRemaining } = getChannelLimitStats(record);
-        if (weeklyRemaining === null) {
-          return '-';
-        }
-        return `${weeklyRemaining}/${weeklyLimit}`;
-      },
-    },
-    {
       key: COLUMN_KEYS.PRIORITY,
       title: t('优先级'),
       dataIndex: 'priority',
