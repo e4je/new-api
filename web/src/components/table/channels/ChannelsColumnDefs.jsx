@@ -33,6 +33,7 @@ import {
   timestamp2string,
   renderGroup,
   renderQuota,
+  renderNumber,
   getChannelIcon,
   renderQuotaWithAmount,
   showSuccess,
@@ -50,6 +51,33 @@ import {
   IconAlertTriangle,
 } from '@douyinfe/semi-icons';
 import { FaRandom } from 'react-icons/fa';
+
+const parseChannelSetting = (record) => {
+  try {
+    return typeof record.setting === 'string'
+      ? JSON.parse(record.setting)
+      : (record.setting || {});
+  } catch (e) {
+    return {};
+  }
+};
+
+const getChannelLimitStats = (record) => {
+  const channelSetting = parseChannelSetting(record);
+  const hourlyLimit = Number(channelSetting.hourly_call_limit) || 0;
+  const dailyLimit = Number(channelSetting.daily_call_limit) || 0;
+  const hourlyCount = Number(record.channel_info?.hourly_call_count) || 0;
+  const dailyCount = Number(record.channel_info?.daily_call_count) || 0;
+
+  return {
+    hourlyLimit,
+    dailyLimit,
+    hourlyCount,
+    dailyCount,
+    hourlyRemaining: hourlyLimit > 0 ? Math.max(0, hourlyLimit - hourlyCount) : null,
+    dailyRemaining: dailyLimit > 0 ? Math.max(0, dailyLimit - dailyCount) : null,
+  };
+};
 
 // Render functions
 const renderType = (type, record = {}, t) => {
@@ -529,42 +557,36 @@ export const getChannelsColumns = ({
       dataIndex: 'expired_time',
       render: (text, record, index) => {
         if (record.children === undefined) {
-          // 解析渠道设置
-          let channelSetting = {};
-          try {
-            channelSetting = typeof record.setting === 'string' ? JSON.parse(record.setting) : (record.setting || {});
-          } catch (e) {}
-          
-          // 小时限制剩余
-          const hourlyLimit = channelSetting.hourly_call_limit || 0;
-          const hasHourlyLimit = hourlyLimit > 0;
-          const hourlyCount = record.channel_info?.hourly_call_count || 0;
-          const hourlyRemaining = hasHourlyLimit ? Math.max(0, hourlyLimit - hourlyCount) : null;
-
-          // 天限制剩余
-          const dailyLimit = channelSetting.daily_call_limit || 0;
-          const hasDailyLimit = dailyLimit > 0;
-          const dailyCount = record.channel_info?.daily_call_count || 0;
-          const dailyRemaining = hasDailyLimit ? Math.max(0, dailyLimit - dailyCount) : null;
+          const { hourlyLimit, dailyLimit, hourlyRemaining, dailyRemaining } =
+            getChannelLimitStats(record);
+          const hasHourlyLimit = hourlyRemaining !== null;
+          const hasDailyLimit = dailyRemaining !== null;
 
           // 总额度模式：剩余 = manual_balance - used_quota
-          const hasManualBalance = record.manual_balance !== null && record.manual_balance !== undefined && record.manual_balance > 0;
-          const usedQuota = record.used_quota || 0;
-          const manualBalanceTotal = hasManualBalance ? record.manual_balance : 0;
-          const manualBalanceRemaining = hasManualBalance ? Math.max(0, manualBalanceTotal - usedQuota) : null;
+          const hasManualBalance =
+            record.manual_balance !== null &&
+            record.manual_balance !== undefined &&
+            Number(record.manual_balance) > 0;
+          const usedQuota = Number(record.used_quota) || 0;
+          const manualBalanceTotal = hasManualBalance
+            ? Number(record.manual_balance) || 0
+            : 0;
+          const manualBalanceRemaining = hasManualBalance
+            ? Math.max(0, manualBalanceTotal - usedQuota)
+            : null;
 
           return (
             <div>
               <Space spacing={1}>
-                <Tooltip content={t('已用额度')}>
+                <Tooltip content={t('已用次数')}>
                   <Tag color='white' type='ghost' shape='circle'>
-                    {renderQuota(usedQuota)}
+                    {renderNumber(usedQuota)}
                   </Tag>
                 </Tooltip>
                 {hasManualBalance ? (
-                  <Tooltip content={t('剩余 = 总额度 - 已用')}>
+                  <Tooltip content={t('剩余次数 = 总数量 - 已用数量')}>
                     <Tag color='green' type='light' shape='circle'>
-                      {renderQuota(manualBalanceRemaining)}
+                      {renderNumber(manualBalanceRemaining)}
                     </Tag>
                   </Tooltip>
                 ) : (
@@ -620,13 +642,43 @@ export const getChannelsColumns = ({
           );
         } else {
           return (
-            <Tooltip content={t('已用额度')}>
+            <Tooltip content={t('已用次数')}>
               <Tag color='white' type='ghost' shape='circle'>
-                {renderQuota(record.used_quota)}
+                {renderNumber(record.used_quota || 0)}
               </Tag>
             </Tooltip>
           );
         }
+      },
+    },
+    {
+      key: COLUMN_KEYS.HOURLY_REMAINING,
+      title: t('每小时剩余'),
+      dataIndex: 'channel_info',
+      render: (text, record) => {
+        if (record.children !== undefined) {
+          return '-';
+        }
+        const { hourlyLimit, hourlyRemaining } = getChannelLimitStats(record);
+        if (hourlyRemaining === null) {
+          return '-';
+        }
+        return `${hourlyRemaining}/${hourlyLimit}`;
+      },
+    },
+    {
+      key: COLUMN_KEYS.DAILY_REMAINING,
+      title: t('每天剩余'),
+      dataIndex: 'channel_info',
+      render: (text, record) => {
+        if (record.children !== undefined) {
+          return '-';
+        }
+        const { dailyLimit, dailyRemaining } = getChannelLimitStats(record);
+        if (dailyRemaining === null) {
+          return '-';
+        }
+        return `${dailyRemaining}/${dailyLimit}`;
       },
     },
     {
