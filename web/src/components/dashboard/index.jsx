@@ -183,6 +183,11 @@ const Dashboard = () => {
         CHART_CONFIG={CHART_CONFIG}
       />
 
+      {/* 渠道用量信息（普通用户可见） */}
+      <div className='mb-4'>
+        <ChannelUsageCard />
+      </div>
+
       {/* API信息和图表面板 */}
       <div className='mb-4'>
         <div
@@ -280,11 +285,6 @@ const Dashboard = () => {
           </div>
         </div>
       )}
-
-      {/* 渠道用量信息（普通用户可见） */}
-      <div className='mb-4'>
-        <ChannelUsageCard />
-      </div>
     </div>
   );
 };

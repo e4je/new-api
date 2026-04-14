@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Tag, Space, Spin, Empty, Tooltip } from '@douyinfe/semi-ui';
+import { Card, Tag, Spin, Empty, Tooltip } from '@douyinfe/semi-ui';
 import { API, showError } from '../../helpers';
 import { useTranslation } from 'react-i18next';
 
@@ -50,14 +50,16 @@ export default function ChannelUsageCard() {
 
   return (
     <Card title={t('渠道信息')}>
-      <div className='space-y-3'>
+      <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
         {channels.map((channel) => (
           <div
             key={channel.id}
-            className='flex flex-col gap-2 p-3 bg-gray-50 rounded-lg'
+            className='flex flex-col gap-2 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors'
           >
-            <div className='font-medium text-gray-800'>{channel.name}</div>
-            <Space spacing={2} wrap>
+            <div className='font-medium text-gray-800 truncate'>
+              {channel.name}
+            </div>
+            <div className='flex flex-wrap gap-1.5'>
               {channel.hourly_limit > 0 && (
                 <Tooltip content={t('每小时调用限制剩余')}>
                   <Tag
@@ -94,7 +96,7 @@ export default function ChannelUsageCard() {
                   </Tag>
                 </Tooltip>
               )}
-            </Space>
+            </div>
           </div>
         ))}
       </div>
