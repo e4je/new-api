@@ -30,6 +30,7 @@ import AnnouncementsPanel from './AnnouncementsPanel';
 import FaqPanel from './FaqPanel';
 import UptimePanel from './UptimePanel';
 import SearchModal from './modals/SearchModal';
+import ChannelUsageCard from '../common/ChannelUsageCard';
 
 import { useDashboardData } from '../../hooks/dashboard/useDashboardData';
 import { useDashboardStats } from '../../hooks/dashboard/useDashboardStats';
@@ -279,6 +280,11 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* 渠道用量信息（普通用户可见） */}
+      <div className='mb-4'>
+        <ChannelUsageCard />
+      </div>
     </div>
   );
 };
