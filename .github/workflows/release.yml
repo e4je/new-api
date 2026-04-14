@@ -24,7 +24,13 @@ jobs:
           fetch-depth: 0
       - name: Determine Version
         run: |
-          VERSION=$(git describe --tags)
+          VERSION=$(git describe --tags --abbrev=0)
+          # Ensure version has at least 3 parts (x.y.z)
+          if echo "$VERSION" | grep -qP '^\d+\.\d+$'; then
+            VERSION="${VERSION}.0"
+          fi
+          # Remove leading 'v' if present for consistency
+          VERSION=${VERSION#v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
@@ -73,7 +79,13 @@ jobs:
           fetch-depth: 0
       - name: Determine Version
         run: |
-          VERSION=$(git describe --tags)
+          VERSION=$(git describe --tags --abbrev=0)
+          # Ensure version has at least 3 parts (x.y.z)
+          if echo "$VERSION" | grep -qP '^\d+\.\d+$'; then
+            VERSION="${VERSION}.0"
+          fi
+          # Remove leading 'v' if present for consistency
+          VERSION=${VERSION#v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
@@ -121,7 +133,13 @@ jobs:
           fetch-depth: 0
       - name: Determine Version
         run: |
-          VERSION=$(git describe --tags)
+          VERSION=$(git describe --tags --abbrev=0)
+          # Ensure version has at least 3 parts (x.y.z)
+          if echo "$VERSION" | grep -qP '^\d+\.\d+$'; then
+            VERSION="${VERSION}.0"
+          fi
+          # Remove leading 'v' if present for consistency
+          VERSION=${VERSION#v}
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
