@@ -781,6 +781,8 @@ func TestChannel(c *gin.Context) {
 		})
 		return
 	}
+	// 测试成功也计入调用次数
+	service.IncrementChannelCallCount(channel.Id)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
