@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Tag, Space, Spin, Empty, Tooltip } from '@douyinfe/semi-ui';
-import { API, showError } from '../../../helpers';
+import { API, showError } from '../../helpers';
 import { useTranslation } from 'react-i18next';
 
 export default function ChannelUsageCard() {
