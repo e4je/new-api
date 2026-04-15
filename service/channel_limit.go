@@ -186,15 +186,19 @@ func CheckChannelCallLimits() {
 					}
 
 					if canEnable {
-						EnableChannel(channel.Id, "", channel.Name)
+						// 先清理 channel_info 并保存，再启用渠道
+						// 避免 EnableChannel 更新 status 后，SaveChannelInfo 产生竞态覆盖
 						channel.ChannelInfo.HourlyCallTimestamps = []int64{}
 						channel.ChannelInfo.DailyCallCount = 0
 						channel.ChannelInfo.WeeklyCallCount = 0
 						delete(otherInfo, "status_reason")
 						delete(otherInfo, "status_time")
 						channel.SetOtherInfo(otherInfo)
-						channel.Status = common.ChannelStatusEnabled
-						needSave = true
+						if err := channel.SaveChannelInfo(); err != nil {
+							common.SysLog(fmt.Sprintf("failed to save channel info before enable: channel_id=%d, error=%v", channel.Id, err))
+						}
+						// 启用渠道（内部会更新 status 字段）
+						EnableChannel(channel.Id, "", channel.Name)
 					}
 				}
 			}

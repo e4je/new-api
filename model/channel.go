@@ -81,8 +81,38 @@ func (c ChannelInfo) Value() (driver.Value, error) {
 
 // Scan implements sql.Scanner interface
 func (c *ChannelInfo) Scan(value interface{}) error {
-	bytesValue, _ := value.([]byte)
-	return common.Unmarshal(bytesValue, c)
+	if value == nil {
+		// NULL 值，初始化为空结构
+		*c = ChannelInfo{}
+		return nil
+	}
+
+	bytesValue, ok := value.([]byte)
+	if !ok {
+		// 类型断言失败，可能是字符串类型或其他类型
+		switch v := value.(type) {
+		case string:
+			bytesValue = []byte(v)
+		default:
+			// 未知类型，初始化为空结构
+			*c = ChannelInfo{}
+			return nil
+		}
+	}
+
+	if len(bytesValue) == 0 {
+		*c = ChannelInfo{}
+		return nil
+	}
+
+	if err := common.Unmarshal(bytesValue, c); err != nil {
+		// JSON 解析失败，记录日志并初始化为空结构
+		common.SysLog(fmt.Sprintf("failed to unmarshal channel_info: value=%s, error=%v", string(bytesValue), err))
+		*c = ChannelInfo{}
+		return nil
+	}
+
+	return nil
 }
 
 func (channel *Channel) GetKeys() []string {
@@ -865,8 +895,7 @@ func (channel *Channel) GetSetting() dto.ChannelSettings {
 		err := common.Unmarshal([]byte(*channel.Setting), &setting)
 		if err != nil {
 			common.SysLog(fmt.Sprintf("failed to unmarshal setting: channel_id=%d, error=%v", channel.Id, err))
-			channel.Setting = nil // 清空设置以避免后续错误
-			_ = channel.Save()    // 保存修改
+			// 解析失败时只记录日志，不清空和保存配置，避免用户数据丢失
 		}
 	}
 	return setting
