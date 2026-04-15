@@ -15,13 +15,15 @@ export default function ChannelUsageCard() {
   const fetchChannelUsage = async () => {
     try {
       const res = await API.get('/api/channel/usage');
-      if (res.data.success) {
+      if (res?.data?.success) {
         setChannels(res.data.data || []);
       } else {
-        showError(res.data.message);
+        // 不显示错误，只显示空列表
+        setChannels([]);
       }
     } catch (error) {
-      showError(error.message);
+      // 静默失败，不显示错误
+      setChannels([]);
     } finally {
       setLoading(false);
     }
@@ -40,10 +42,7 @@ export default function ChannelUsageCard() {
   if (channels.length === 0) {
     return (
       <Card>
-        <Empty
-          image={<Empty.defaultIllustration />}
-          description={t('暂无渠道用量信息')}
-        />
+        <Empty description={t('暂无渠道用量信息')} />
       </Card>
     );
   }
