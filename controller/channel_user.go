@@ -51,13 +51,10 @@ func GetChannelUsageForUser(c *gin.Context) {
 			continue
 		}
 
-		// 防止 ChannelInfo 为 nil 导致 panic
-		var hourlyCount, dailyCount, weeklyCount int
-		if channel.ChannelInfo != nil {
-			hourlyCount = len(channel.ChannelInfo.HourlyCallTimestamps)
-			dailyCount = channel.ChannelInfo.DailyCallCount
-			weeklyCount = channel.ChannelInfo.WeeklyCallCount
-		}
+		// ChannelInfo 是值类型，直接访问安全（未初始化时切片为空，int为0）
+		hourlyCount := len(channel.ChannelInfo.HourlyCallTimestamps)
+		dailyCount := channel.ChannelInfo.DailyCallCount
+		weeklyCount := channel.ChannelInfo.WeeklyCallCount
 
 		hourlyRemaining := 0
 		if hourlyLimit > 0 {
