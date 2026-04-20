@@ -197,11 +197,11 @@ func main() {
 
 	// 使用自定义 http.Server 设置超时参数，防止空闲连接堆积
 	httpServer := &http.Server{
-		Addr:         ":" + port,
-		Handler:      server,
-		IdleTimeout:  30 * time.Second,  // 空闲连接 30 秒后关闭（解决 FRP 代理下连接堆积问题）
-		ReadTimeout:  10 * time.Second,  // 读取请求头超时
-		WriteTimeout: 0,                 // 禁用写入超时
+		Addr:              ":" + port,
+		Handler:           server,
+		IdleTimeout:       30 * time.Second,  // 空闲连接 30 秒后关闭（解决 FRP 代理下连接堆积问题）
+		ReadHeaderTimeout: 10 * time.Second,  // 读取请求头超时
+		WriteTimeout:      0,                 // 禁用写入超时
 	}
 
 	err = httpServer.ListenAndServe()
