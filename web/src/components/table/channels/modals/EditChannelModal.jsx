@@ -884,17 +884,6 @@ const EditChannelModal = (props) => {
         data.weekly_call_limit = 0;
       }
     } else {
-        data.force_format = false;
-        data.thinking_to_content = false;
-        data.proxy = '';
-        data.pass_through_body_enabled = false;
-        data.system_prompt = '';
-        data.system_prompt_override = false;
-        data.hourly_call_limit = 0;
-        data.daily_call_limit = 0;
-        data.weekly_call_limit = 0;
-      }
-    } else {
       data.force_format = false;
       data.thinking_to_content = false;
       data.proxy = '';
