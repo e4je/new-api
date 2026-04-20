@@ -160,6 +160,14 @@ function type2secretPrompt(type) {
   }
 }
 
+const normalizeLimitInputValue = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) {
+    return 0;
+  }
+  return Math.floor(num);
+};
+
 const EditChannelModal = (props) => {
   const { t } = useTranslation();
   const channelId = props.editingChannel.id;
@@ -210,6 +218,9 @@ const EditChannelModal = (props) => {
     allow_inference_geo: false,
     allow_speed: false,
     claude_beta_query: false,
+    channel_rate_limit_hourly: 0,
+    channel_rate_limit_daily: 0,
+    channel_rate_limit_weekly: 0,
     upstream_model_update_check_enabled: false,
     upstream_model_update_auto_sync_enabled: false,
     upstream_model_update_last_check_time: 0,
@@ -893,6 +904,18 @@ const EditChannelModal = (props) => {
             parsedSettings.allow_inference_geo || false;
           data.allow_speed = parsedSettings.allow_speed || false;
           data.claude_beta_query = parsedSettings.claude_beta_query || false;
+          data.channel_rate_limit_hourly = Math.max(
+            0,
+            Number(parsedSettings.channel_rate_limit_hourly) || 0,
+          );
+          data.channel_rate_limit_daily = Math.max(
+            0,
+            Number(parsedSettings.channel_rate_limit_daily) || 0,
+          );
+          data.channel_rate_limit_weekly = Math.max(
+            0,
+            Number(parsedSettings.channel_rate_limit_weekly) || 0,
+          );
           data.upstream_model_update_check_enabled =
             parsedSettings.upstream_model_update_check_enabled === true;
           data.upstream_model_update_auto_sync_enabled =
@@ -923,6 +946,9 @@ const EditChannelModal = (props) => {
           data.allow_inference_geo = false;
           data.allow_speed = false;
           data.claude_beta_query = false;
+          data.channel_rate_limit_hourly = 0;
+          data.channel_rate_limit_daily = 0;
+          data.channel_rate_limit_weekly = 0;
           data.upstream_model_update_check_enabled = false;
           data.upstream_model_update_auto_sync_enabled = false;
           data.upstream_model_update_last_check_time = 0;
@@ -941,6 +967,9 @@ const EditChannelModal = (props) => {
         data.allow_inference_geo = false;
         data.allow_speed = false;
         data.claude_beta_query = false;
+        data.channel_rate_limit_hourly = 0;
+        data.channel_rate_limit_daily = 0;
+        data.channel_rate_limit_weekly = 0;
         data.upstream_model_update_check_enabled = false;
         data.upstream_model_update_auto_sync_enabled = false;
         data.upstream_model_update_last_check_time = 0;
@@ -1019,6 +1048,9 @@ const EditChannelModal = (props) => {
         data.pass_through_body_enabled ||
         data.force_format ||
         data.claude_beta_query ||
+        (data.channel_rate_limit_hourly && data.channel_rate_limit_hourly > 0) ||
+        (data.channel_rate_limit_daily && data.channel_rate_limit_daily > 0) ||
+        (data.channel_rate_limit_weekly && data.channel_rate_limit_weekly > 0) ||
         data.system_prompt_override;
       if (hasAdvancedValues) {
         setAdvancedSettingsOpen(true);
@@ -1785,6 +1817,16 @@ const EditChannelModal = (props) => {
       }
     }
 
+    settings.channel_rate_limit_hourly = normalizeLimitInputValue(
+      localInputs.channel_rate_limit_hourly,
+    );
+    settings.channel_rate_limit_daily = normalizeLimitInputValue(
+      localInputs.channel_rate_limit_daily,
+    );
+    settings.channel_rate_limit_weekly = normalizeLimitInputValue(
+      localInputs.channel_rate_limit_weekly,
+    );
+
     settings.upstream_model_update_check_enabled =
       localInputs.upstream_model_update_check_enabled === true;
     settings.upstream_model_update_auto_sync_enabled =
@@ -1830,6 +1872,9 @@ const EditChannelModal = (props) => {
     delete localInputs.allow_inference_geo;
     delete localInputs.allow_speed;
     delete localInputs.claude_beta_query;
+    delete localInputs.channel_rate_limit_hourly;
+    delete localInputs.channel_rate_limit_daily;
+    delete localInputs.channel_rate_limit_weekly;
     delete localInputs.upstream_model_update_check_enabled;
     delete localInputs.upstream_model_update_auto_sync_enabled;
     delete localInputs.upstream_model_update_last_check_time;
@@ -2462,6 +2507,63 @@ const EditChannelModal = (props) => {
                         placeholder={t('渠道权重')}
                         min={0}
                         onNumberChange={(value) => handleInputChange('weight', value)}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                  </Row>
+
+                  <div className='mt-4 mb-2 text-sm font-medium text-gray-700'>
+                    {t('调用次数限制')}
+                  </div>
+                  <Row gutter={12}>
+                    <Col span={8}>
+                      <Form.InputNumber
+                        field='channel_rate_limit_hourly'
+                        label={t('每小时')}
+                        min={0}
+                        step={1}
+                        suffix={t('次')}
+                        onNumberChange={(value) =>
+                          handleInputChange(
+                            'channel_rate_limit_hourly',
+                            normalizeLimitInputValue(value),
+                          )
+                        }
+                        extraText={t('滑动窗口，0 为不限制')}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                    <Col span={8}>
+                      <Form.InputNumber
+                        field='channel_rate_limit_daily'
+                        label={t('每天')}
+                        min={0}
+                        step={1}
+                        suffix={t('次')}
+                        onNumberChange={(value) =>
+                          handleInputChange(
+                            'channel_rate_limit_daily',
+                            normalizeLimitInputValue(value),
+                          )
+                        }
+                        extraText={t('固定窗口，按服务器时区每日 00:00 重置，0 为不限制')}
+                        style={{ width: '100%' }}
+                      />
+                    </Col>
+                    <Col span={8}>
+                      <Form.InputNumber
+                        field='channel_rate_limit_weekly'
+                        label={t('每周')}
+                        min={0}
+                        step={1}
+                        suffix={t('次')}
+                        onNumberChange={(value) =>
+                          handleInputChange(
+                            'channel_rate_limit_weekly',
+                            normalizeLimitInputValue(value),
+                          )
+                        }
+                        extraText={t('固定窗口，按服务器时区周一 00:00 重置，0 为不限制')}
                         style={{ width: '100%' }}
                       />
                     </Col>
