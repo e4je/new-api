@@ -199,7 +199,7 @@ func main() {
 	httpServer := &http.Server{
 		Addr:              ":" + port,
 		Handler:           server,
-		IdleTimeout:       30 * time.Second,  // 空闲连接 30 秒后关闭（解决 FRP 代理下连接堆积问题）
+		IdleTimeout:       1800 * time.Second, // 空闲连接 1800 秒后关闭（解决 FRP 代理下连接堆积问题）
 		ReadHeaderTimeout: 10 * time.Second,  // 读取请求头超时
 		ReadTimeout:       60 * time.Second,  // 读取完整请求超时（防御慢速攻击）
 		WriteTimeout:      0,                 // 禁用写入超时
