@@ -133,6 +133,16 @@ func UpdateOption(c *gin.Context) {
 		option.Value = fmt.Sprintf("%v", option.Value)
 	}
 	switch option.Key {
+	case "EmailProvider":
+		v := strings.ToLower(strings.TrimSpace(option.Value.(string)))
+		if v != "smtp" && v != "cf_worker" {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "EmailProvider 仅支持 smtp 或 cf_worker",
+			})
+			return
+		}
+		option.Value = v
 	case "GitHubOAuthEnabled":
 		if option.Value == "true" && common.GitHubClientId == "" {
 			c.JSON(http.StatusOK, gin.H{

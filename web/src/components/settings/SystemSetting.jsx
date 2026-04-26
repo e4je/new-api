@@ -30,7 +30,6 @@ import {
   Spin,
   Card,
   Radio,
-  Select,
 } from '@douyinfe/semi-ui';
 const { Text } = Typography;
 import {
@@ -69,6 +68,10 @@ const SystemSetting = () => {
     SMTPAccount: '',
     SMTPFrom: '',
     SMTPToken: '',
+    EmailProvider: 'smtp',
+    CFWorkerEmailGatewayURL: '',
+    CFWorkerEmailFrom: '',
+    CFWorkerEmailAuthToken: '',
     WorkerUrl: '',
     WorkerValidKey: '',
     WorkerAllowHttpImageRequestEnabled: '',
@@ -215,6 +218,9 @@ const SystemSetting = () => {
         }
         newInputs[item.key] = item.value;
       });
+      if (!newInputs.EmailProvider) {
+        newInputs.EmailProvider = 'smtp';
+      }
       setInputs(newInputs);
       setOriginInputs(newInputs);
       // 同步模式布尔到本地状态
@@ -319,8 +325,13 @@ const SystemSetting = () => {
     await updateOptions([{ key: 'ServerAddress', value: ServerAddress }]);
   };
 
-  const submitSMTP = async () => {
+  const submitEmailDelivery = async () => {
     const options = [];
+    const selectedProvider = inputs.EmailProvider || 'smtp';
+
+    if (originInputs['EmailProvider'] !== selectedProvider) {
+      options.push({ key: 'EmailProvider', value: selectedProvider });
+    }
 
     if (originInputs['SMTPServer'] !== inputs.SMTPServer) {
       options.push({ key: 'SMTPServer', value: inputs.SMTPServer });
@@ -342,6 +353,30 @@ const SystemSetting = () => {
       inputs.SMTPToken !== ''
     ) {
       options.push({ key: 'SMTPToken', value: inputs.SMTPToken });
+    }
+
+    if (
+      originInputs['CFWorkerEmailGatewayURL'] !== inputs.CFWorkerEmailGatewayURL
+    ) {
+      options.push({
+        key: 'CFWorkerEmailGatewayURL',
+        value: removeTrailingSlash(inputs.CFWorkerEmailGatewayURL),
+      });
+    }
+    if (originInputs['CFWorkerEmailFrom'] !== inputs.CFWorkerEmailFrom) {
+      options.push({
+        key: 'CFWorkerEmailFrom',
+        value: inputs.CFWorkerEmailFrom,
+      });
+    }
+    if (
+      originInputs['CFWorkerEmailAuthToken'] !== inputs.CFWorkerEmailAuthToken &&
+      inputs.CFWorkerEmailAuthToken !== ''
+    ) {
+      options.push({
+        key: 'CFWorkerEmailAuthToken',
+        value: inputs.CFWorkerEmailAuthToken,
+      });
     }
 
     if (options.length > 0) {
@@ -1291,64 +1326,133 @@ const SystemSetting = () => {
                 </Form.Section>
               </Card>
               <Card>
-                <Form.Section text={t('配置 SMTP')}>
-                  <Text>{t('用以支持系统的邮件发送')}</Text>
-                  <Row
-                    gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
-                  >
-                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                      <Form.Input
-                        field='SMTPServer'
-                        label={t('SMTP 服务器地址')}
-                      />
-                    </Col>
-                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                      <Form.Input field='SMTPPort' label={t('SMTP 端口')} />
-                    </Col>
-                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                      <Form.Input field='SMTPAccount' label={t('SMTP 账户')} />
-                    </Col>
-                  </Row>
+                <Form.Section text={t('配置邮件发送')}>
+                  <Text>{t('可选择 SMTP 或 Cloudflare Worker 发信网关')}</Text>
                   <Row
                     gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
                     style={{ marginTop: 16 }}
                   >
                     <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                      <Form.Input
-                        field='SMTPFrom'
-                        label={t('SMTP 发送者邮箱')}
+                      <Form.Select
+                        field='EmailProvider'
+                        label={t('发信方式')}
+                        optionList={[
+                          { label: 'SMTP', value: 'smtp' },
+                          { label: 'CF Worker', value: 'cf_worker' },
+                        ]}
                       />
-                    </Col>
-                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                      <Form.Input
-                        field='SMTPToken'
-                        label={t('SMTP 访问凭证')}
-                        type='password'
-                        placeholder='敏感信息不会发送到前端显示'
-                      />
-                    </Col>
-                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                      <Form.Checkbox
-                        field='SMTPSSLEnabled'
-                        noLabel
-                        onChange={(e) =>
-                          handleCheckboxChange('SMTPSSLEnabled', e)
-                        }
-                      >
-                        {t('启用SMTP SSL')}
-                      </Form.Checkbox>
-                      <Form.Checkbox
-                        field='SMTPForceAuthLogin'
-                        noLabel
-                        onChange={(e) =>
-                          handleCheckboxChange('SMTPForceAuthLogin', e)
-                        }
-                      >
-                        {t('强制使用 AUTH LOGIN')}
-                      </Form.Checkbox>
                     </Col>
                   </Row>
-                  <Button onClick={submitSMTP}>{t('保存 SMTP 设置')}</Button>
+
+                  {(inputs.EmailProvider || 'smtp') === 'smtp' && (
+                    <>
+                      <Row
+                        gutter={{
+                          xs: 8,
+                          sm: 16,
+                          md: 24,
+                          lg: 24,
+                          xl: 24,
+                          xxl: 24,
+                        }}
+                      >
+                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                          <Form.Input
+                            field='SMTPServer'
+                            label={t('SMTP 服务器地址')}
+                          />
+                        </Col>
+                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                          <Form.Input field='SMTPPort' label={t('SMTP 端口')} />
+                        </Col>
+                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                          <Form.Input
+                            field='SMTPAccount'
+                            label={t('SMTP 账户')}
+                          />
+                        </Col>
+                      </Row>
+                      <Row
+                        gutter={{
+                          xs: 8,
+                          sm: 16,
+                          md: 24,
+                          lg: 24,
+                          xl: 24,
+                          xxl: 24,
+                        }}
+                        style={{ marginTop: 16 }}
+                      >
+                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                          <Form.Input
+                            field='SMTPFrom'
+                            label={t('SMTP 发送者邮箱')}
+                          />
+                        </Col>
+                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                          <Form.Input
+                            field='SMTPToken'
+                            label={t('SMTP 访问凭证')}
+                            type='password'
+                            placeholder='敏感信息不会发送到前端显示'
+                          />
+                        </Col>
+                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                          <Form.Checkbox
+                            field='SMTPSSLEnabled'
+                            noLabel
+                            onChange={(e) =>
+                              handleCheckboxChange('SMTPSSLEnabled', e)
+                            }
+                          >
+                            {t('启用SMTP SSL')}
+                          </Form.Checkbox>
+                          <Form.Checkbox
+                            field='SMTPForceAuthLogin'
+                            noLabel
+                            onChange={(e) =>
+                              handleCheckboxChange('SMTPForceAuthLogin', e)
+                            }
+                          >
+                            {t('强制使用 AUTH LOGIN')}
+                          </Form.Checkbox>
+                        </Col>
+                      </Row>
+                    </>
+                  )}
+
+                  {(inputs.EmailProvider || 'smtp') === 'cf_worker' && (
+                    <Row
+                      gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
+                      style={{ marginTop: 16 }}
+                    >
+                      <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                        <Form.Input
+                          field='CFWorkerEmailGatewayURL'
+                          label={t('CF Worker 网关地址')}
+                          placeholder='https://your-worker.example.com/send-email'
+                        />
+                      </Col>
+                      <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                        <Form.Input
+                          field='CFWorkerEmailFrom'
+                          label={t('发件人地址（可选）')}
+                        />
+                      </Col>
+                      <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                        <Form.Input
+                          field='CFWorkerEmailAuthToken'
+                          label={t('网关鉴权 Token（可选）')}
+                          type='password'
+                          placeholder='敏感信息不会发送到前端显示'
+                        />
+                      </Col>
+                    </Row>
+                  )}
+
+                  <Button onClick={submitEmailDelivery}>
+                    {t('保存邮件发送设置')}
+                  </Button>
                 </Form.Section>
               </Card>
               <Card>
