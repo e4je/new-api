@@ -61,11 +61,6 @@ func InitOptionMap() {
 	common.OptionMap["SMTPPort"] = strconv.Itoa(common.SMTPPort)
 	common.OptionMap["SMTPAccount"] = ""
 	common.OptionMap["SMTPToken"] = ""
-	common.OptionMap["EmailProvider"] = common.EmailProvider
-	common.OptionMap["EmailProviderKeepConfig"] = strconv.FormatBool(common.EmailProviderKeepConfig)
-	common.OptionMap["CFWorkerEmailGatewayURL"] = common.CFWorkerEmailGatewayURL
-	common.OptionMap["CFWorkerEmailFrom"] = common.CFWorkerEmailFrom
-	common.OptionMap["CFWorkerEmailAuthToken"] = common.CFWorkerEmailAuthToken
 	common.OptionMap["SMTPSSLEnabled"] = strconv.FormatBool(common.SMTPSSLEnabled)
 	common.OptionMap["SMTPForceAuthLogin"] = strconv.FormatBool(common.SMTPForceAuthLogin)
 	common.OptionMap["Notice"] = ""
@@ -251,7 +246,7 @@ func updateOptionMap(key string, value string) (err error) {
 			common.ImageDownloadPermission = intValue
 		}
 	}
-	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" || key == "EmailProviderKeepConfig" {
+	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" {
 		boolValue := value == "true"
 		switch key {
 		case "PasswordRegisterEnabled":
@@ -328,8 +323,6 @@ func updateOptionMap(key string, value string) (err error) {
 			common.SMTPSSLEnabled = boolValue
 		case "SMTPForceAuthLogin":
 			common.SMTPForceAuthLogin = boolValue
-		case "EmailProviderKeepConfig":
-			common.EmailProviderKeepConfig = boolValue
 		case "WorkerAllowHttpImageRequestEnabled":
 			system_setting.WorkerAllowHttpImageRequestEnabled = boolValue
 		case "DefaultUseAutoGroup":
@@ -352,17 +345,6 @@ func updateOptionMap(key string, value string) (err error) {
 		common.SMTPFrom = value
 	case "SMTPToken":
 		common.SMTPToken = value
-	case "EmailProvider":
-		common.EmailProvider = strings.ToLower(strings.TrimSpace(value))
-		if common.EmailProvider == "" {
-			common.EmailProvider = "smtp"
-		}
-	case "CFWorkerEmailGatewayURL":
-		common.CFWorkerEmailGatewayURL = value
-	case "CFWorkerEmailFrom":
-		common.CFWorkerEmailFrom = value
-	case "CFWorkerEmailAuthToken":
-		common.CFWorkerEmailAuthToken = value
 	case "ServerAddress":
 		system_setting.ServerAddress = value
 	case "WorkerUrl":

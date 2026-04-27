@@ -1,12 +1,9 @@
 package common
 
 import (
-	"bytes"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"io"
-	"net/http"
 	"net/smtp"
 	"slices"
 	"strings"
@@ -37,18 +34,6 @@ func getSMTPAuth() smtp.Auth {
 }
 
 func SendEmail(subject string, receiver string, content string) error {
-	provider := strings.ToLower(strings.TrimSpace(EmailProvider))
-	switch provider {
-	case "cf_worker":
-		return sendEmailByCFWorker(subject, receiver, content)
-	case "", "smtp":
-		return sendEmailBySMTP(subject, receiver, content)
-	default:
-		return fmt.Errorf("unsupported email provider: %s", provider)
-	}
-}
-
-func sendEmailBySMTP(subject string, receiver string, content string) error {
 	if SMTPFrom == "" { // for compatibility
 		SMTPFrom = SMTPAccount
 	}
@@ -116,66 +101,4 @@ func sendEmailBySMTP(subject string, receiver string, content string) error {
 		SysError(fmt.Sprintf("failed to send email to %s: %v", receiver, err))
 	}
 	return err
-}
-
-type cfWorkerEmailPayload struct {
-	From    string   `json:"from,omitempty"`
-	To      []string `json:"to"`
-	Subject string   `json:"subject"`
-	HTML    string   `json:"html,omitempty"`
-	Text    string   `json:"text,omitempty"`
-}
-
-func sendEmailByCFWorker(subject string, receiver string, content string) error {
-	gatewayURL := strings.TrimSpace(CFWorkerEmailGatewayURL)
-	if gatewayURL == "" {
-		return fmt.Errorf("CF Worker 邮件网关地址未配置")
-	}
-
-	receivers := make([]string, 0, 1)
-	for _, item := range strings.Split(receiver, ";") {
-		addr := strings.TrimSpace(item)
-		if addr != "" {
-			receivers = append(receivers, addr)
-		}
-	}
-	if len(receivers) == 0 {
-		return fmt.Errorf("收件人为空")
-	}
-
-	payload := cfWorkerEmailPayload{
-		From:    strings.TrimSpace(CFWorkerEmailFrom),
-		To:      receivers,
-		Subject: subject,
-		HTML:    content,
-		Text:    content,
-	}
-	payloadBytes, err := Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, gatewayURL, bytes.NewReader(payloadBytes))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	if token := strings.TrimSpace(CFWorkerEmailAuthToken); token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-
-	client := &http.Client{
-		Timeout: 15 * time.Second,
-	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(io.LimitReader(resp.Body, 2048))
-		return fmt.Errorf("CF Worker 发信失败: status=%d, body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
-	}
-	return nil
 }

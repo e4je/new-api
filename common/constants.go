@@ -84,11 +84,6 @@ var SMTPForceAuthLogin = false
 var SMTPAccount = ""
 var SMTPFrom = ""
 var SMTPToken = ""
-var EmailProvider = "smtp"
-var EmailProviderKeepConfig = true
-var CFWorkerEmailGatewayURL = ""
-var CFWorkerEmailFrom = ""
-var CFWorkerEmailAuthToken = ""
 
 var GitHubClientId = ""
 var GitHubClientSecret = ""

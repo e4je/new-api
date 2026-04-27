@@ -138,16 +138,6 @@ func UpdateOption(c *gin.Context) {
 		option.Value = fmt.Sprintf("%v", option.Value)
 	}
 	switch option.Key {
-	case "EmailProvider":
-		v := strings.ToLower(strings.TrimSpace(option.Value.(string)))
-		if v != "smtp" && v != "cf_worker" {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "EmailProvider 仅支持 smtp 或 cf_worker",
-			})
-			return
-		}
-		option.Value = v
 	case "GitHubOAuthEnabled":
 		if option.Value == "true" && common.GitHubClientId == "" {
 			c.JSON(http.StatusOK, gin.H{
@@ -353,15 +343,10 @@ func SendTestEmail(c *gin.Context) {
 		return
 	}
 
-	provider := strings.ToLower(strings.TrimSpace(common.EmailProvider))
-	if provider == "" {
-		provider = "smtp"
-	}
-	subject := fmt.Sprintf("%s 测试邮件（%s）", common.SystemName, provider)
+	subject := fmt.Sprintf("%s 测试邮件（SMTP）", common.SystemName)
 	content := fmt.Sprintf(
-		"<p>这是一封来自 %s 的测试邮件。</p><p>当前发信方式：<strong>%s</strong></p><p>发送时间：%s</p>",
+		"<p>这是一封来自 %s 的测试邮件。</p><p>当前发信方式：<strong>SMTP</strong></p><p>发送时间：%s</p>",
 		common.SystemName,
-		provider,
 		time.Now().Format("2006-01-02 15:04:05"),
 	)
 
