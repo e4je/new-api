@@ -68,10 +68,6 @@ const SystemSetting = () => {
     SMTPAccount: '',
     SMTPFrom: '',
     SMTPToken: '',
-    EmailProvider: 'smtp',
-    CFWorkerEmailGatewayURL: '',
-    CFWorkerEmailFrom: '',
-    CFWorkerEmailAuthToken: '',
     WorkerUrl: '',
     WorkerValidKey: '',
     WorkerAllowHttpImageRequestEnabled: '',
@@ -129,6 +125,8 @@ const SystemSetting = () => {
   const [domainList, setDomainList] = useState([]);
   const [ipList, setIpList] = useState([]);
   const [allowedPorts, setAllowedPorts] = useState([]);
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   const getOptions = async () => {
     setLoading(true);
@@ -218,9 +216,6 @@ const SystemSetting = () => {
         }
         newInputs[item.key] = item.value;
       });
-      if (!newInputs.EmailProvider) {
-        newInputs.EmailProvider = 'smtp';
-      }
       setInputs(newInputs);
       setOriginInputs(newInputs);
       // 同步模式布尔到本地状态
@@ -289,12 +284,22 @@ const SystemSetting = () => {
       }
 
       showSuccess(t('更新成功'));
-      // 更新本地状态
-      const newInputs = { ...inputs };
-      options.forEach((opt) => {
-        newInputs[opt.key] = opt.value;
+      // 基于最新状态增量合并，避免使用旧闭包状态覆盖其它未提交字段
+      setInputs((prev) => {
+        const next = { ...prev };
+        options.forEach((opt) => {
+          next[opt.key] = opt.value;
+        });
+        return next;
       });
-      setInputs(newInputs);
+      // 同步 originInputs，保证后续 diff 判断准确
+      setOriginInputs((prev) => {
+        const next = { ...prev };
+        options.forEach((opt) => {
+          next[opt.key] = opt.value;
+        });
+        return next;
+      });
     } catch (error) {
       showError(t('更新失败'));
     }
@@ -302,7 +307,7 @@ const SystemSetting = () => {
   };
 
   const handleFormChange = (values) => {
-    setInputs(values);
+    setInputs((prev) => ({ ...prev, ...values }));
   };
 
   const submitWorker = async () => {
@@ -327,11 +332,6 @@ const SystemSetting = () => {
 
   const submitEmailDelivery = async () => {
     const options = [];
-    const selectedProvider = inputs.EmailProvider || 'smtp';
-
-    if (originInputs['EmailProvider'] !== selectedProvider) {
-      options.push({ key: 'EmailProvider', value: selectedProvider });
-    }
 
     if (originInputs['SMTPServer'] !== inputs.SMTPServer) {
       options.push({ key: 'SMTPServer', value: inputs.SMTPServer });
@@ -355,33 +355,31 @@ const SystemSetting = () => {
       options.push({ key: 'SMTPToken', value: inputs.SMTPToken });
     }
 
-    if (
-      originInputs['CFWorkerEmailGatewayURL'] !== inputs.CFWorkerEmailGatewayURL
-    ) {
-      options.push({
-        key: 'CFWorkerEmailGatewayURL',
-        value: removeTrailingSlash(inputs.CFWorkerEmailGatewayURL),
-      });
-    }
-    if (originInputs['CFWorkerEmailFrom'] !== inputs.CFWorkerEmailFrom) {
-      options.push({
-        key: 'CFWorkerEmailFrom',
-        value: inputs.CFWorkerEmailFrom,
-      });
-    }
-    if (
-      originInputs['CFWorkerEmailAuthToken'] !== inputs.CFWorkerEmailAuthToken &&
-      inputs.CFWorkerEmailAuthToken !== ''
-    ) {
-      options.push({
-        key: 'CFWorkerEmailAuthToken',
-        value: inputs.CFWorkerEmailAuthToken,
-      });
-    }
-
     if (options.length > 0) {
       await updateOptions(options);
     }
+  };
+
+  const sendTestEmail = async () => {
+    if (!testEmail || testEmail.trim() === '') {
+      showError(t('请输入测试收件邮箱'));
+      return;
+    }
+    setSendingTestEmail(true);
+    try {
+      const res = await API.post('/api/option/test_email', {
+        email: testEmail.trim(),
+      });
+      const { success, message } = res.data;
+      if (success) {
+        showSuccess(t('测试邮件已发送'));
+      } else {
+        showError(message || t('测试邮件发送失败'));
+      }
+    } catch (error) {
+      showError(t('测试邮件发送失败'));
+    }
+    setSendingTestEmail(false);
   };
 
   const submitEmailDomainWhitelist = async () => {
@@ -1327,35 +1325,18 @@ const SystemSetting = () => {
               </Card>
               <Card>
                 <Form.Section text={t('配置邮件发送')}>
-                  <Text>{t('可选择 SMTP 或 Cloudflare Worker 发信网关')}</Text>
+                  <Text>{t('用以支持系统的邮件发送（SMTP）')}</Text>
                   <Row
-                    gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
+                    gutter={{
+                      xs: 8,
+                      sm: 16,
+                      md: 24,
+                      lg: 24,
+                      xl: 24,
+                      xxl: 24,
+                    }}
                     style={{ marginTop: 16 }}
                   >
-                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                      <Form.Select
-                        field='EmailProvider'
-                        label={t('发信方式')}
-                        optionList={[
-                          { label: 'SMTP', value: 'smtp' },
-                          { label: 'CF Worker', value: 'cf_worker' },
-                        ]}
-                      />
-                    </Col>
-                  </Row>
-
-                  {(inputs.EmailProvider || 'smtp') === 'smtp' && (
-                    <>
-                      <Row
-                        gutter={{
-                          xs: 8,
-                          sm: 16,
-                          md: 24,
-                          lg: 24,
-                          xl: 24,
-                          xxl: 24,
-                        }}
-                      >
                         <Col xs={24} sm={24} md={8} lg={8} xl={8}>
                           <Form.Input
                             field='SMTPServer'
@@ -1371,18 +1352,18 @@ const SystemSetting = () => {
                             label={t('SMTP 账户')}
                           />
                         </Col>
-                      </Row>
-                      <Row
-                        gutter={{
-                          xs: 8,
-                          sm: 16,
-                          md: 24,
-                          lg: 24,
-                          xl: 24,
-                          xxl: 24,
-                        }}
-                        style={{ marginTop: 16 }}
-                      >
+                  </Row>
+                  <Row
+                    gutter={{
+                      xs: 8,
+                      sm: 16,
+                      md: 24,
+                      lg: 24,
+                      xl: 24,
+                      xxl: 24,
+                    }}
+                    style={{ marginTop: 16 }}
+                  >
                         <Col xs={24} sm={24} md={8} lg={8} xl={8}>
                           <Form.Input
                             field='SMTPFrom'
@@ -1417,42 +1398,34 @@ const SystemSetting = () => {
                             {t('强制使用 AUTH LOGIN')}
                           </Form.Checkbox>
                         </Col>
-                      </Row>
-                    </>
-                  )}
-
-                  {(inputs.EmailProvider || 'smtp') === 'cf_worker' && (
-                    <Row
-                      gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
-                      style={{ marginTop: 16 }}
-                    >
-                      <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                        <Form.Input
-                          field='CFWorkerEmailGatewayURL'
-                          label={t('CF Worker 网关地址')}
-                          placeholder='https://your-worker.example.com/send-email'
-                        />
-                      </Col>
-                      <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                        <Form.Input
-                          field='CFWorkerEmailFrom'
-                          label={t('发件人地址（可选）')}
-                        />
-                      </Col>
-                      <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                        <Form.Input
-                          field='CFWorkerEmailAuthToken'
-                          label={t('网关鉴权 Token（可选）')}
-                          type='password'
-                          placeholder='敏感信息不会发送到前端显示'
-                        />
-                      </Col>
-                    </Row>
-                  )}
+                  </Row>
 
                   <Button onClick={submitEmailDelivery}>
                     {t('保存邮件发送设置')}
                   </Button>
+                  <Row
+                    gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
+                    style={{ marginTop: 16 }}
+                  >
+                    <Col xs={24} sm={24} md={16} lg={16} xl={16}>
+                      <Form.Input
+                        label={t('测试收件邮箱')}
+                        value={testEmail}
+                        onChange={(value) => setTestEmail(value)}
+                        placeholder='your-email@example.com'
+                      />
+                    </Col>
+                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                      <div style={{ marginTop: 30 }}>
+                        <Button
+                          onClick={sendTestEmail}
+                          loading={sendingTestEmail}
+                        >
+                          {t('发送测试邮件')}
+                        </Button>
+                      </div>
+                    </Col>
+                  </Row>
                 </Form.Section>
               </Card>
               <Card>
