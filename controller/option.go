@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
@@ -110,6 +111,10 @@ func GetOptions(c *gin.Context) {
 type OptionUpdateRequest struct {
 	Key   string `json:"key"`
 	Value any    `json:"value"`
+}
+
+type TestEmailRequest struct {
+	Email string `json:"email"`
 }
 
 func UpdateOption(c *gin.Context) {
@@ -327,4 +332,46 @@ func UpdateOption(c *gin.Context) {
 		"message": "",
 	})
 	return
+}
+
+func SendTestEmail(c *gin.Context) {
+	var req TestEmailRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "无效的参数",
+		})
+		return
+	}
+
+	req.Email = strings.TrimSpace(req.Email)
+	if err := common.Validate.Var(req.Email, "required,email"); err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "测试收件邮箱格式不正确",
+		})
+		return
+	}
+
+	provider := strings.ToLower(strings.TrimSpace(common.EmailProvider))
+	if provider == "" {
+		provider = "smtp"
+	}
+	subject := fmt.Sprintf("%s 测试邮件（%s）", common.SystemName, provider)
+	content := fmt.Sprintf(
+		"<p>这是一封来自 %s 的测试邮件。</p><p>当前发信方式：<strong>%s</strong></p><p>发送时间：%s</p>",
+		common.SystemName,
+		provider,
+		time.Now().Format("2006-01-02 15:04:05"),
+	)
+
+	if err := common.SendEmail(subject, req.Email, content); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+	})
 }

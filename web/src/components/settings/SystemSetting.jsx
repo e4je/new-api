@@ -69,6 +69,7 @@ const SystemSetting = () => {
     SMTPFrom: '',
     SMTPToken: '',
     EmailProvider: 'smtp',
+    EmailProviderKeepConfig: true,
     CFWorkerEmailGatewayURL: '',
     CFWorkerEmailFrom: '',
     CFWorkerEmailAuthToken: '',
@@ -129,6 +130,8 @@ const SystemSetting = () => {
   const [domainList, setDomainList] = useState([]);
   const [ipList, setIpList] = useState([]);
   const [allowedPorts, setAllowedPorts] = useState([]);
+  const [testEmail, setTestEmail] = useState('');
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   const getOptions = async () => {
     setLoading(true);
@@ -187,6 +190,7 @@ const SystemSetting = () => {
           case 'EmailAliasRestrictionEnabled':
           case 'SMTPSSLEnabled':
           case 'SMTPForceAuthLogin':
+          case 'EmailProviderKeepConfig':
           case 'LinuxDOOAuthEnabled':
           case 'discord.enabled':
           case 'oidc.enabled':
@@ -220,6 +224,9 @@ const SystemSetting = () => {
       });
       if (!newInputs.EmailProvider) {
         newInputs.EmailProvider = 'smtp';
+      }
+      if (typeof newInputs.EmailProviderKeepConfig === 'undefined') {
+        newInputs.EmailProviderKeepConfig = true;
       }
       setInputs(newInputs);
       setOriginInputs(newInputs);
@@ -302,7 +309,7 @@ const SystemSetting = () => {
   };
 
   const handleFormChange = (values) => {
-    setInputs(values);
+    setInputs((prev) => ({ ...prev, ...values }));
   };
 
   const submitWorker = async () => {
@@ -328,9 +335,17 @@ const SystemSetting = () => {
   const submitEmailDelivery = async () => {
     const options = [];
     const selectedProvider = inputs.EmailProvider || 'smtp';
+    const keepConfig = toBoolean(
+      typeof inputs.EmailProviderKeepConfig === 'undefined'
+        ? true
+        : inputs.EmailProviderKeepConfig,
+    );
 
     if (originInputs['EmailProvider'] !== selectedProvider) {
       options.push({ key: 'EmailProvider', value: selectedProvider });
+    }
+    if (originInputs['EmailProviderKeepConfig'] !== keepConfig) {
+      options.push({ key: 'EmailProviderKeepConfig', value: keepConfig });
     }
 
     if (originInputs['SMTPServer'] !== inputs.SMTPServer) {
@@ -379,9 +394,54 @@ const SystemSetting = () => {
       });
     }
 
+    if (!keepConfig) {
+      if (selectedProvider === 'smtp') {
+        if (originInputs['CFWorkerEmailGatewayURL'] !== '') {
+          options.push({ key: 'CFWorkerEmailGatewayURL', value: '' });
+        }
+        if (originInputs['CFWorkerEmailFrom'] !== '') {
+          options.push({ key: 'CFWorkerEmailFrom', value: '' });
+        }
+        options.push({ key: 'CFWorkerEmailAuthToken', value: '' });
+      } else {
+        if (originInputs['SMTPServer'] !== '') {
+          options.push({ key: 'SMTPServer', value: '' });
+        }
+        if (originInputs['SMTPAccount'] !== '') {
+          options.push({ key: 'SMTPAccount', value: '' });
+        }
+        if (originInputs['SMTPFrom'] !== '') {
+          options.push({ key: 'SMTPFrom', value: '' });
+        }
+        options.push({ key: 'SMTPToken', value: '' });
+      }
+    }
+
     if (options.length > 0) {
       await updateOptions(options);
     }
+  };
+
+  const sendTestEmail = async () => {
+    if (!testEmail || testEmail.trim() === '') {
+      showError(t('请输入测试收件邮箱'));
+      return;
+    }
+    setSendingTestEmail(true);
+    try {
+      const res = await API.post('/api/option/test_email', {
+        email: testEmail.trim(),
+      });
+      const { success, message } = res.data;
+      if (success) {
+        showSuccess(t('测试邮件已发送'));
+      } else {
+        showError(message || t('测试邮件发送失败'));
+      }
+    } catch (error) {
+      showError(t('测试邮件发送失败'));
+    }
+    setSendingTestEmail(false);
   };
 
   const submitEmailDomainWhitelist = async () => {
@@ -1342,6 +1402,17 @@ const SystemSetting = () => {
                         ]}
                       />
                     </Col>
+                    <Col xs={24} sm={24} md={16} lg={16} xl={16}>
+                      <Form.Checkbox
+                        field='EmailProviderKeepConfig'
+                        noLabel
+                        onChange={(e) =>
+                          handleCheckboxChange('EmailProviderKeepConfig', e)
+                        }
+                      >
+                        {t('切换发信方式时保留另一种配置（建议开启）')}
+                      </Form.Checkbox>
+                    </Col>
                   </Row>
 
                   {(inputs.EmailProvider || 'smtp') === 'smtp' && (
@@ -1453,6 +1524,29 @@ const SystemSetting = () => {
                   <Button onClick={submitEmailDelivery}>
                     {t('保存邮件发送设置')}
                   </Button>
+                  <Row
+                    gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
+                    style={{ marginTop: 16 }}
+                  >
+                    <Col xs={24} sm={24} md={16} lg={16} xl={16}>
+                      <Form.Input
+                        label={t('测试收件邮箱')}
+                        value={testEmail}
+                        onChange={(value) => setTestEmail(value)}
+                        placeholder='your-email@example.com'
+                      />
+                    </Col>
+                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                      <div style={{ marginTop: 30 }}>
+                        <Button
+                          onClick={sendTestEmail}
+                          loading={sendingTestEmail}
+                        >
+                          {t('发送测试邮件')}
+                        </Button>
+                      </div>
+                    </Col>
+                  </Row>
                 </Form.Section>
               </Card>
               <Card>

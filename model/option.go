@@ -62,6 +62,7 @@ func InitOptionMap() {
 	common.OptionMap["SMTPAccount"] = ""
 	common.OptionMap["SMTPToken"] = ""
 	common.OptionMap["EmailProvider"] = common.EmailProvider
+	common.OptionMap["EmailProviderKeepConfig"] = strconv.FormatBool(common.EmailProviderKeepConfig)
 	common.OptionMap["CFWorkerEmailGatewayURL"] = common.CFWorkerEmailGatewayURL
 	common.OptionMap["CFWorkerEmailFrom"] = common.CFWorkerEmailFrom
 	common.OptionMap["CFWorkerEmailAuthToken"] = common.CFWorkerEmailAuthToken
@@ -250,7 +251,7 @@ func updateOptionMap(key string, value string) (err error) {
 			common.ImageDownloadPermission = intValue
 		}
 	}
-	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" {
+	if strings.HasSuffix(key, "Enabled") || key == "DefaultCollapseSidebar" || key == "DefaultUseAutoGroup" || key == "SMTPForceAuthLogin" || key == "EmailProviderKeepConfig" {
 		boolValue := value == "true"
 		switch key {
 		case "PasswordRegisterEnabled":
@@ -327,6 +328,8 @@ func updateOptionMap(key string, value string) (err error) {
 			common.SMTPSSLEnabled = boolValue
 		case "SMTPForceAuthLogin":
 			common.SMTPForceAuthLogin = boolValue
+		case "EmailProviderKeepConfig":
+			common.EmailProviderKeepConfig = boolValue
 		case "WorkerAllowHttpImageRequestEnabled":
 			system_setting.WorkerAllowHttpImageRequestEnabled = boolValue
 		case "DefaultUseAutoGroup":
