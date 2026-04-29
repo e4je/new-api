@@ -518,6 +518,7 @@ export function aggregateChannelsByTag(
         status: undefined as unknown as number,
         group: '',
         used_quota: 0,
+        manual_balance: null,
         response_time: 0,
         priority: -1 as unknown as number | null,
         weight: -1 as unknown as number | null,

@@ -347,6 +347,7 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	} else {
 		model.UpdateUserUsedQuotaAndRequestCount(relayInfo.UserId, quota)
 		model.UpdateChannelUsedQuota(relayInfo.ChannelId, quota)
+		IncrementChannelCallCount(relayInfo.ChannelId)
 	}
 
 	if err := SettleBilling(ctx, relayInfo, quota); err != nil {

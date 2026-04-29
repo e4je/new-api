@@ -178,6 +178,19 @@ export async function updateChannelBalance(
 }
 
 /**
+ * Set or clear a manual balance for a channel.
+ */
+export async function updateChannelManualBalance(
+  id: number,
+  manualBalance: number | null
+): Promise<{ success: boolean; message?: string; manual_balance?: number | null }> {
+  const res = await api.post(`/api/channel/manual_balance/${id}`, {
+    manual_balance: manualBalance,
+  })
+  return res.data
+}
+
+/**
  * Fetch available models from upstream provider
  */
 export async function fetchUpstreamModels(

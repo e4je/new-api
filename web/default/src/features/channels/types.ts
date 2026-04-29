@@ -12,6 +12,11 @@ export const channelInfoSchema = z.object({
   multi_key_disabled_time: z.record(z.string(), z.number()).optional(),
   multi_key_polling_index: z.number().default(0),
   multi_key_mode: z.enum(['random', 'polling']).default('random'),
+  hourly_call_timestamps: z.array(z.number()).optional(),
+  daily_call_count: z.number().optional(),
+  daily_call_reset_time: z.number().optional(),
+  weekly_call_count: z.number().optional(),
+  weekly_call_reset_time: z.number().optional(),
 })
 
 export type ChannelInfo = z.infer<typeof channelInfoSchema>
@@ -32,6 +37,7 @@ export const channelSchema = z.object({
   other: z.string().default(''),
   balance: z.number().default(0), // in USD
   balance_updated_time: z.number(),
+  manual_balance: z.number().nullish(),
   models: z.string().default(''),
   group: z.string().default('default'),
   used_quota: z.number().default(0),
@@ -68,6 +74,9 @@ export interface ChannelSettings {
   pass_through_body_enabled?: boolean
   system_prompt?: string
   system_prompt_override?: boolean
+  hourly_call_limit?: number
+  daily_call_limit?: number
+  weekly_call_limit?: number
 }
 
 export interface ChannelOtherSettings {
@@ -78,6 +87,15 @@ export interface ChannelOtherSettings {
   allow_service_tier?: boolean
   disable_store?: boolean
   allow_safety_identifier?: boolean
+  allow_include_obfuscation?: boolean
+  allow_inference_geo?: boolean
+  allow_speed?: boolean
+  claude_beta_query?: boolean
+  upstream_model_update_check_enabled?: boolean
+  upstream_model_update_auto_sync_enabled?: boolean
+  upstream_model_update_ignored_models?: string[]
+  upstream_model_update_last_check_time?: number
+  upstream_model_update_last_detected_models?: string[]
 }
 
 // ============================================================================
@@ -266,6 +284,7 @@ export interface ChannelFormData {
   model_mapping?: string
   priority?: number
   weight?: number
+  manual_balance?: number | null
   test_model?: string
   auto_ban?: number
   status: number

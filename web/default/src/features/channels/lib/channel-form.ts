@@ -17,6 +17,7 @@ export const channelFormSchema = z.object({
   model_mapping: z.string().optional(),
   priority: z.number().optional(),
   weight: z.number().optional(),
+  manual_balance: z.number().nullable().optional(),
   test_model: z.string().optional(),
   auto_ban: z.number().optional(),
   status: z.number(),
@@ -43,6 +44,9 @@ export const channelFormSchema = z.object({
   pass_through_body_enabled: z.boolean().optional(),
   system_prompt: z.string().optional(),
   system_prompt_override: z.boolean().optional(),
+  hourly_call_limit: z.number().optional(),
+  daily_call_limit: z.number().optional(),
+  weekly_call_limit: z.number().optional(),
   // Type-specific settings (stored in settings JSON)
   is_enterprise_account: z.boolean().optional(), // OpenRouter specific
   vertex_key_type: z.enum(['json', 'api_key']).optional(), // Vertex AI specific
@@ -59,6 +63,7 @@ export const channelFormSchema = z.object({
   // Upstream model update settings (stored in settings JSON)
   upstream_model_update_check_enabled: z.boolean().optional(),
   upstream_model_update_auto_sync_enabled: z.boolean().optional(),
+  upstream_model_update_ignored_models: z.string().optional(),
 })
 
 export type ChannelFormValues = z.infer<typeof channelFormSchema>
@@ -78,6 +83,7 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   model_mapping: '',
   priority: 0,
   weight: 0,
+  manual_balance: null,
   test_model: '',
   auto_ban: 1,
   status: CHANNEL_STATUS.ENABLED,
@@ -100,6 +106,9 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   pass_through_body_enabled: false,
   system_prompt: '',
   system_prompt_override: false,
+  hourly_call_limit: 0,
+  daily_call_limit: 0,
+  weekly_call_limit: 0,
   // Type-specific settings
   is_enterprise_account: false,
   vertex_key_type: 'json',
@@ -113,6 +122,9 @@ export const CHANNEL_FORM_DEFAULT_VALUES: ChannelFormValues = {
   allow_inference_geo: false,
   allow_speed: false,
   claude_beta_query: false,
+  upstream_model_update_check_enabled: false,
+  upstream_model_update_auto_sync_enabled: false,
+  upstream_model_update_ignored_models: '',
 }
 
 // ============================================================================
@@ -133,6 +145,9 @@ export function transformChannelToFormDefaults(
     pass_through_body_enabled: false,
     system_prompt: '',
     system_prompt_override: false,
+    hourly_call_limit: 0,
+    daily_call_limit: 0,
+    weekly_call_limit: 0,
   }
 
   if (channel.setting) {
@@ -145,6 +160,9 @@ export function transformChannelToFormDefaults(
         pass_through_body_enabled: parsed.pass_through_body_enabled || false,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
+        hourly_call_limit: Number(parsed.hourly_call_limit) || 0,
+        daily_call_limit: Number(parsed.daily_call_limit) || 0,
+        weekly_call_limit: Number(parsed.weekly_call_limit) || 0,
       }
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -166,6 +184,7 @@ export function transformChannelToFormDefaults(
   let claudeBetaQuery = false
   let upstreamModelUpdateCheckEnabled = false
   let upstreamModelUpdateAutoSyncEnabled = false
+  let upstreamModelUpdateIgnoredModels = ''
 
   if (channel.settings) {
     try {
@@ -185,6 +204,11 @@ export function transformChannelToFormDefaults(
         parsed.upstream_model_update_check_enabled === true
       upstreamModelUpdateAutoSyncEnabled =
         parsed.upstream_model_update_auto_sync_enabled === true
+      upstreamModelUpdateIgnoredModels = Array.isArray(
+        parsed.upstream_model_update_ignored_models
+      )
+        ? parsed.upstream_model_update_ignored_models.join(',')
+        : ''
     } catch (error) {
       // eslint-disable-next-line no-console
       console.error('Failed to parse channel settings:', error)
@@ -202,6 +226,7 @@ export function transformChannelToFormDefaults(
     model_mapping: channel.model_mapping || '',
     priority: channel.priority || 0,
     weight: channel.weight || 0,
+    manual_balance: channel.manual_balance ?? null,
     test_model: channel.test_model || '',
     auto_ban: channel.auto_ban ?? 1,
     status: channel.status,
@@ -233,6 +258,7 @@ export function transformChannelToFormDefaults(
     allow_safety_identifier: allowSafetyIdentifier,
     upstream_model_update_check_enabled: upstreamModelUpdateCheckEnabled,
     upstream_model_update_auto_sync_enabled: upstreamModelUpdateAutoSyncEnabled,
+    upstream_model_update_ignored_models: upstreamModelUpdateIgnoredModels,
   }
 }
 
@@ -247,6 +273,9 @@ function buildSettingJSON(formData: ChannelFormValues): string {
     pass_through_body_enabled: formData.pass_through_body_enabled || false,
     system_prompt: formData.system_prompt || '',
     system_prompt_override: formData.system_prompt_override || false,
+    hourly_call_limit: formData.hourly_call_limit || 0,
+    daily_call_limit: formData.daily_call_limit || 0,
+    weekly_call_limit: formData.weekly_call_limit || 0,
   }
   return JSON.stringify(settingObj)
 }
@@ -336,7 +365,25 @@ function buildSettingsJSON(formData: ChannelFormValues): string {
     settingsObj.upstream_model_update_check_enabled =
       formData.upstream_model_update_check_enabled === true
     settingsObj.upstream_model_update_auto_sync_enabled =
+      settingsObj.upstream_model_update_check_enabled === true &&
       formData.upstream_model_update_auto_sync_enabled === true
+    settingsObj.upstream_model_update_ignored_models = Array.from(
+      new Set(
+        String(formData.upstream_model_update_ignored_models || '')
+          .split(',')
+          .map((model) => model.trim())
+          .filter(Boolean)
+      )
+    )
+    if (
+      !Array.isArray(settingsObj.upstream_model_update_last_detected_models) ||
+      settingsObj.upstream_model_update_check_enabled !== true
+    ) {
+      settingsObj.upstream_model_update_last_detected_models = []
+    }
+    if (typeof settingsObj.upstream_model_update_last_check_time !== 'number') {
+      settingsObj.upstream_model_update_last_check_time = 0
+    }
   }
 
   return JSON.stringify(settingsObj)
@@ -364,6 +411,10 @@ export function transformFormDataToCreatePayload(formData: ChannelFormValues): {
     model_mapping: formData.model_mapping || null,
     priority: formData.priority || null,
     weight: formData.weight || null,
+    manual_balance:
+      formData.manual_balance === undefined || formData.manual_balance === 0
+        ? null
+        : formData.manual_balance,
     test_model: formData.test_model || null,
     auto_ban: formData.auto_ban ?? 1,
     status: formData.status,
@@ -412,6 +463,10 @@ export function transformFormDataToUpdatePayload(
     model_mapping: formData.model_mapping || null,
     priority: formData.priority || null,
     weight: formData.weight || null,
+    manual_balance:
+      formData.manual_balance === undefined || formData.manual_balance === 0
+        ? null
+        : formData.manual_balance,
     test_model: formData.test_model || null,
     auto_ban: formData.auto_ban ?? 1,
     status: formData.status,

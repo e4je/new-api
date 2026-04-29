@@ -286,6 +286,7 @@ function BalanceCell({ channel }: { channel: Channel }) {
   const isTagRow = isTagAggregateRow(channel)
   const balance = channel.balance || 0
   const usedQuota = channel.used_quota || 0
+  const manualBalance = channel.manual_balance ?? null
   const [isUpdating, setIsUpdating] = useState(false)
   const [codexUsageOpen, setCodexUsageOpen] = useState(false)
   const [codexUsageResponse, setCodexUsageResponse] =
@@ -296,7 +297,32 @@ function BalanceCell({ channel }: { channel: Channel }) {
     tokenSuffix && value !== '-' ? `${value}${tokenSuffix}` : value
 
   const usedDisplay = withSuffix(formatQuotaValue(usedQuota))
-  const remainingDisplay = withSuffix(formatBalance(balance))
+  const hasManualBalance =
+    manualBalance !== null && manualBalance !== undefined && manualBalance > 0
+  const manualRemaining = hasManualBalance
+    ? Math.max(0, manualBalance - usedQuota)
+    : null
+  const remainingDisplay = hasManualBalance
+    ? withSuffix(formatQuotaValue(manualRemaining ?? 0))
+    : withSuffix(formatBalance(balance))
+  const settings = parseChannelSettings(channel.setting)
+  const hourlyLimit = Number(settings.hourly_call_limit) || 0
+  const dailyLimit = Number(settings.daily_call_limit) || 0
+  const weeklyLimit = Number(settings.weekly_call_limit) || 0
+  const hourlyUsed = channel.channel_info?.hourly_call_timestamps?.length || 0
+  const dailyUsed = channel.channel_info?.daily_call_count || 0
+  const weeklyUsed = channel.channel_info?.weekly_call_count || 0
+  const limitItems = [
+    hourlyLimit > 0
+      ? `${t('Hourly')}: ${Math.max(0, hourlyLimit - hourlyUsed)}/${hourlyLimit}`
+      : null,
+    dailyLimit > 0
+      ? `${t('Daily')}: ${Math.max(0, dailyLimit - dailyUsed)}/${dailyLimit}`
+      : null,
+    weeklyLimit > 0
+      ? `${t('Weekly')}: ${Math.max(0, weeklyLimit - weeklyUsed)}/${weeklyLimit}`
+      : null,
+  ].filter(Boolean)
 
   // Tag row: only show cumulative used quota
   if (isTagRow) {
@@ -311,7 +337,11 @@ function BalanceCell({ channel }: { channel: Channel }) {
   }
 
   // Regular channel row: show used and remaining with click to update
-  const variant = getBalanceVariant(balance)
+  const variant = hasManualBalance
+    ? manualRemaining === 0
+      ? 'danger'
+      : 'success'
+    : getBalanceVariant(balance)
 
   const handleClickUpdate = async () => {
     if (isUpdating) return
@@ -384,8 +414,16 @@ function BalanceCell({ channel }: { channel: Channel }) {
             <p>
               {channel.type === 57
                 ? t('Click to view Codex usage')
-                : `${t('Remaining:')} ${remainingDisplay}`}
+                : `${hasManualBalance ? t('Manual remaining:') : t('Remaining:')} ${remainingDisplay}`}
             </p>
+            {hasManualBalance && (
+              <p>
+                {t('Manual balance:')} {withSuffix(formatQuotaValue(manualBalance))}
+              </p>
+            )}
+            {limitItems.map((item) => (
+              <p key={item}>{item}</p>
+            ))}
             {channel.type !== 57 && <p>{t('Click to update balance')}</p>}
           </TooltipContent>
         </Tooltip>

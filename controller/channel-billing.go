@@ -483,8 +483,8 @@ func SetChannelManualBalance(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "余额已更新",
+		"success":        true,
+		"message":        "余额已更新",
 		"manual_balance": req.ManualBalance,
 	})
 }
@@ -504,6 +504,7 @@ func SetChannelCallLimit(c *gin.Context) {
 
 	var req struct {
 		HourlyCallLimit *int `json:"hourly_call_limit"`
+		DailyCallLimit  *int `json:"daily_call_limit"`
 		WeeklyCallLimit *int `json:"weekly_call_limit"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -518,6 +519,9 @@ func SetChannelCallLimit(c *gin.Context) {
 	if req.HourlyCallLimit != nil {
 		setting.HourlyCallLimit = *req.HourlyCallLimit
 	}
+	if req.DailyCallLimit != nil {
+		setting.DailyCallLimit = *req.DailyCallLimit
+	}
 	if req.WeeklyCallLimit != nil {
 		setting.WeeklyCallLimit = *req.WeeklyCallLimit
 	}
@@ -529,9 +533,10 @@ func SetChannelCallLimit(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"message": "调用限制已更新",
+		"success":           true,
+		"message":           "调用限制已更新",
 		"hourly_call_limit": setting.HourlyCallLimit,
+		"daily_call_limit":  setting.DailyCallLimit,
 		"weekly_call_limit": setting.WeeklyCallLimit,
 	})
 }
