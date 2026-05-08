@@ -49,7 +49,17 @@ jobs:
           cd web/default
           bun install
           DISABLE_ESLINT_PLUGIN='true' VITE_REACT_APP_VERSION=$(git describe --tags) bun run build
-          cd ..
+          cd ../..
+
+      - name: Build frontend (classic)
+        env:
+          CI: ""
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: |
+          cd web/classic
+          bun install
+          VITE_REACT_APP_VERSION=$(git describe --tags) bun run build
+          cd ../..
 
       # - name: Build Go binary (macos/Linux)
       #   if: runner.os != 'Windows'
