@@ -78,6 +78,10 @@ jobs:
           cd electron
           VERSION=$(git describe --tags)
           VERSION=${VERSION#v}  # Remove 'v' prefix if present
+          # Normalize x.y to x.y.0 so npm version always receives valid semver
+          if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)$ ]]; then
+            VERSION="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.0"
+          fi
           # Convert to valid semver: take first 3 components and convert rest to prerelease format
           # e.g., 0.9.3-patch.1 -> 0.9.3-patch.1
           if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(.*)$ ]]; then
