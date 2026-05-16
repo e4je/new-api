@@ -479,8 +479,8 @@ export function transformFormDataToUpdatePayload(
     models: formData.models,
     group: formatGroups(formData.group),
     model_mapping: formData.model_mapping || null,
-    priority: formData.priority || null,
-    weight: formData.weight || null,
+    priority: formData.priority ?? 0,
+    weight: formData.weight ?? 0,
     manual_balance:
       formData.manual_balance === undefined || formData.manual_balance === 0
         ? null
@@ -510,7 +510,12 @@ export function transformFormDataToUpdatePayload(
     }
   })
 
-  // Send explicit empty strings for nullable JSON/text fields so GORM updates can clear them.
+  // Send explicit empty strings for nullable fields so GORM updates can clear them.
+  payload.base_url = formData.base_url || ''
+  payload.openai_organization = formData.openai_organization || ''
+  payload.test_model = formData.test_model || ''
+  payload.tag = formData.tag || ''
+  payload.remark = formData.remark || ''
   payload.model_mapping = formData.model_mapping || ''
   payload.status_code_mapping = formData.status_code_mapping || ''
   payload.param_override = formData.param_override || ''
