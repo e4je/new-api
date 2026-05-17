@@ -30,6 +30,7 @@ import {
   Spin,
   Card,
   Radio,
+  Select,
 } from '@douyinfe/semi-ui';
 const { Text } = Typography;
 import {
@@ -125,8 +126,6 @@ const SystemSetting = () => {
   const [domainList, setDomainList] = useState([]);
   const [ipList, setIpList] = useState([]);
   const [allowedPorts, setAllowedPorts] = useState([]);
-  const [testEmail, setTestEmail] = useState('');
-  const [sendingTestEmail, setSendingTestEmail] = useState(false);
 
   const getOptions = async () => {
     setLoading(true);
@@ -284,22 +283,12 @@ const SystemSetting = () => {
       }
 
       showSuccess(t('更新成功'));
-      // 基于最新状态增量合并，避免使用旧闭包状态覆盖其它未提交字段
-      setInputs((prev) => {
-        const next = { ...prev };
-        options.forEach((opt) => {
-          next[opt.key] = opt.value;
-        });
-        return next;
+      // 更新本地状态
+      const newInputs = { ...inputs };
+      options.forEach((opt) => {
+        newInputs[opt.key] = opt.value;
       });
-      // 同步 originInputs，保证后续 diff 判断准确
-      setOriginInputs((prev) => {
-        const next = { ...prev };
-        options.forEach((opt) => {
-          next[opt.key] = opt.value;
-        });
-        return next;
-      });
+      setInputs(newInputs);
     } catch (error) {
       showError(t('更新失败'));
     }
@@ -307,7 +296,7 @@ const SystemSetting = () => {
   };
 
   const handleFormChange = (values) => {
-    setInputs((prev) => ({ ...prev, ...values }));
+    setInputs(values);
   };
 
   const submitWorker = async () => {
@@ -330,7 +319,7 @@ const SystemSetting = () => {
     await updateOptions([{ key: 'ServerAddress', value: ServerAddress }]);
   };
 
-  const submitEmailDelivery = async () => {
+  const submitSMTP = async () => {
     const options = [];
 
     if (originInputs['SMTPServer'] !== inputs.SMTPServer) {
@@ -358,28 +347,6 @@ const SystemSetting = () => {
     if (options.length > 0) {
       await updateOptions(options);
     }
-  };
-
-  const sendTestEmail = async () => {
-    if (!testEmail || testEmail.trim() === '') {
-      showError(t('请输入测试收件邮箱'));
-      return;
-    }
-    setSendingTestEmail(true);
-    try {
-      const res = await API.post('/api/option/test_email', {
-        email: testEmail.trim(),
-      });
-      const { success, message } = res.data;
-      if (success) {
-        showSuccess(t('测试邮件已发送'));
-      } else {
-        showError(message || t('测试邮件发送失败'));
-      }
-    } catch (error) {
-      showError(t('测试邮件发送失败'));
-    }
-    setSendingTestEmail(false);
   };
 
   const submitEmailDomainWhitelist = async () => {
@@ -1324,108 +1291,64 @@ const SystemSetting = () => {
                 </Form.Section>
               </Card>
               <Card>
-                <Form.Section text={t('配置邮件发送')}>
-                  <Text>{t('用以支持系统的邮件发送（SMTP）')}</Text>
+                <Form.Section text={t('配置 SMTP')}>
+                  <Text>{t('用以支持系统的邮件发送')}</Text>
                   <Row
-                    gutter={{
-                      xs: 8,
-                      sm: 16,
-                      md: 24,
-                      lg: 24,
-                      xl: 24,
-                      xxl: 24,
-                    }}
-                    style={{ marginTop: 16 }}
+                    gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
                   >
-                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                          <Form.Input
-                            field='SMTPServer'
-                            label={t('SMTP 服务器地址')}
-                          />
-                        </Col>
-                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                          <Form.Input field='SMTPPort' label={t('SMTP 端口')} />
-                        </Col>
-                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                          <Form.Input
-                            field='SMTPAccount'
-                            label={t('SMTP 账户')}
-                          />
-                        </Col>
+                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                      <Form.Input
+                        field='SMTPServer'
+                        label={t('SMTP 服务器地址')}
+                      />
+                    </Col>
+                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                      <Form.Input field='SMTPPort' label={t('SMTP 端口')} />
+                    </Col>
+                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                      <Form.Input field='SMTPAccount' label={t('SMTP 账户')} />
+                    </Col>
                   </Row>
-                  <Row
-                    gutter={{
-                      xs: 8,
-                      sm: 16,
-                      md: 24,
-                      lg: 24,
-                      xl: 24,
-                      xxl: 24,
-                    }}
-                    style={{ marginTop: 16 }}
-                  >
-                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                          <Form.Input
-                            field='SMTPFrom'
-                            label={t('SMTP 发送者邮箱')}
-                          />
-                        </Col>
-                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                          <Form.Input
-                            field='SMTPToken'
-                            label={t('SMTP 访问凭证')}
-                            type='password'
-                            placeholder='敏感信息不会发送到前端显示'
-                          />
-                        </Col>
-                        <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                          <Form.Checkbox
-                            field='SMTPSSLEnabled'
-                            noLabel
-                            onChange={(e) =>
-                              handleCheckboxChange('SMTPSSLEnabled', e)
-                            }
-                          >
-                            {t('启用SMTP SSL')}
-                          </Form.Checkbox>
-                          <Form.Checkbox
-                            field='SMTPForceAuthLogin'
-                            noLabel
-                            onChange={(e) =>
-                              handleCheckboxChange('SMTPForceAuthLogin', e)
-                            }
-                          >
-                            {t('强制使用 AUTH LOGIN')}
-                          </Form.Checkbox>
-                        </Col>
-                  </Row>
-
-                  <Button onClick={submitEmailDelivery}>
-                    {t('保存邮件发送设置')}
-                  </Button>
                   <Row
                     gutter={{ xs: 8, sm: 16, md: 24, lg: 24, xl: 24, xxl: 24 }}
                     style={{ marginTop: 16 }}
                   >
-                    <Col xs={24} sm={24} md={16} lg={16} xl={16}>
+                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
                       <Form.Input
-                        label={t('测试收件邮箱')}
-                        value={testEmail}
-                        onChange={(value) => setTestEmail(value)}
-                        placeholder='your-email@example.com'
+                        field='SMTPFrom'
+                        label={t('SMTP 发送者邮箱')}
                       />
                     </Col>
                     <Col xs={24} sm={24} md={8} lg={8} xl={8}>
-                      <div style={{ marginTop: 30 }}>
-                        <Button
-                          onClick={sendTestEmail}
-                          loading={sendingTestEmail}
-                        >
-                          {t('发送测试邮件')}
-                        </Button>
-                      </div>
+                      <Form.Input
+                        field='SMTPToken'
+                        label={t('SMTP 访问凭证')}
+                        type='password'
+                        placeholder='敏感信息不会发送到前端显示'
+                      />
+                    </Col>
+                    <Col xs={24} sm={24} md={8} lg={8} xl={8}>
+                      <Form.Checkbox
+                        field='SMTPSSLEnabled'
+                        noLabel
+                        onChange={(e) =>
+                          handleCheckboxChange('SMTPSSLEnabled', e)
+                        }
+                      >
+                        {t('启用SMTP SSL')}
+                      </Form.Checkbox>
+                      <Form.Checkbox
+                        field='SMTPForceAuthLogin'
+                        noLabel
+                        onChange={(e) =>
+                          handleCheckboxChange('SMTPForceAuthLogin', e)
+                        }
+                      >
+                        {t('强制使用 AUTH LOGIN')}
+                      </Form.Checkbox>
                     </Col>
                   </Row>
+                  <Button onClick={submitSMTP}>{t('保存 SMTP 设置')}</Button>
                 </Form.Section>
               </Card>
               <Card>
