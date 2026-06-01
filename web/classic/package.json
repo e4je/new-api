@@ -6,6 +6,7 @@
   "dependencies": {
     "antd": "^5.28.0",
     "@douyinfe/semi-icons": "^2.63.1",
+    "@douyinfe/semi-illustrations": "2.69.1",
     "@douyinfe/semi-theme-default": "2.69.1",
     "@douyinfe/semi-ui": "2.69.1",
     "@lobehub/icons": "catalog:",
@@ -16,6 +17,7 @@
     "clsx": "catalog:",
     "dayjs": "catalog:",
     "history": "^5.3.0",
+    "highlight.js": "^11.11.1",
     "i18next": "^23.16.8",
     "i18next-browser-languagedetector": "^7.2.0",
     "katex": "^0.16.22",
@@ -23,6 +25,7 @@
     "marked": "^4.1.1",
     "mermaid": "^11.6.0",
     "qrcode.react": "catalog:",
+    "prop-types": "^15.8.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
