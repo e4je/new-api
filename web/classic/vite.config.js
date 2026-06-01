@@ -56,6 +56,19 @@ export default defineConfig({
       cssLayer: true,
     }),
   ],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // Compatibility for legacy "~pkg/path" imports emitted by semi styles.
+        importer(url) {
+          if (url.startsWith('~')) {
+            return { file: url.slice(1) };
+          }
+          return null;
+        },
+      },
+    },
+  },
   optimizeDeps: {
     force: true,
     esbuildOptions: {

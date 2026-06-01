@@ -49,6 +49,7 @@ jobs:
         env:
           CI: ""
           NODE_OPTIONS: "--max-old-space-size=4096"
+          SASS_PATH: "../node_modules"
         run: |
           cd web/classic
           bun install
@@ -114,6 +115,7 @@ jobs:
         env:
           CI: ""
           NODE_OPTIONS: "--max-old-space-size=4096"
+          SASS_PATH: "../node_modules"
         run: |
           cd web/classic
           bun install
@@ -176,6 +178,7 @@ jobs:
         env:
           CI: ""
           NODE_OPTIONS: "--max-old-space-size=4096"
+          SASS_PATH: "../node_modules"
         run: |
           cd web/classic
           bun install
