@@ -1,6 +1,8 @@
 name: Release (Linux, macOS, Windows)
 permissions:
   contents: write
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 on:
   workflow_dispatch:
@@ -34,7 +36,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: latest
+          bun-version: 1.2.16
       - name: Build Frontend (default)
         env:
           CI: ""
@@ -98,7 +100,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: latest
+          bun-version: 1.2.16
       - name: Build Frontend (default)
         env:
           CI: ""
@@ -161,7 +163,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: latest
+          bun-version: 1.2.16
       - name: Build Frontend (default)
         env:
           CI: ""
