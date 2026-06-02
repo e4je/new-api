@@ -13,7 +13,7 @@ import (
 // TwoFA 用户2FA设置表
 type TwoFA struct {
 	Id             int            `json:"id" gorm:"primaryKey"`
-	UserId         int            `json:"user_id" gorm:"unique;not null;index"`
+	UserId         int            `json:"user_id" gorm:"unique;not null"`
 	Secret         string         `json:"-" gorm:"type:varchar(255);not null"` // TOTP密钥，不返回给前端
 	IsEnabled      bool           `json:"is_enabled"`
 	FailedAttempts int            `json:"failed_attempts" gorm:"default:0"`
