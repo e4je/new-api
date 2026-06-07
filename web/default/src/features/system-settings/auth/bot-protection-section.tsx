@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import * as z from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -45,42 +45,95 @@ const botProtectionSchema = z.object({
   TurnstileCheckEnabled: z.boolean(),
   TurnstileSiteKey: z.string().optional(),
   TurnstileSecretKey: z.string().optional(),
-  'aliyun_captcha.enabled': z.boolean(),
-  'aliyun_captcha.region': z.string().optional(),
-  'aliyun_captcha.prefix': z.string().optional(),
-  'aliyun_captcha.scene_id': z.string().optional(),
+  aliyun_captcha: z.object({
+    enabled: z.boolean(),
+    region: z.string().optional(),
+    prefix: z.string().optional(),
+    scene_id: z.string().optional(),
+  }),
 })
 
 type BotProtectionFormValues = z.infer<typeof botProtectionSchema>
 
-type BotProtectionSectionProps = {
-  defaultValues: BotProtectionFormValues
+type FlatBotProtectionDefaults = {
+  TurnstileCheckEnabled: boolean
+  TurnstileSiteKey?: string
+  TurnstileSecretKey?: string
+  'aliyun_captcha.enabled': boolean
+  'aliyun_captcha.region'?: string
+  'aliyun_captcha.prefix'?: string
+  'aliyun_captcha.scene_id'?: string
 }
+
+type BotProtectionSectionProps = {
+  defaultValues: FlatBotProtectionDefaults
+}
+
+const buildFormDefaults = (
+  defaults: FlatBotProtectionDefaults
+): BotProtectionFormValues => ({
+  TurnstileCheckEnabled: defaults.TurnstileCheckEnabled,
+  TurnstileSiteKey: defaults.TurnstileSiteKey ?? '',
+  TurnstileSecretKey: defaults.TurnstileSecretKey ?? '',
+  aliyun_captcha: {
+    enabled: defaults['aliyun_captcha.enabled'],
+    region: defaults['aliyun_captcha.region'] || 'cn',
+    prefix: defaults['aliyun_captcha.prefix'] ?? '',
+    scene_id: defaults['aliyun_captcha.scene_id'] || '1fu9scwz',
+  },
+})
+
+const normalizeFormValues = (
+  values: BotProtectionFormValues
+): FlatBotProtectionDefaults => ({
+  TurnstileCheckEnabled: values.TurnstileCheckEnabled,
+  TurnstileSiteKey: values.TurnstileSiteKey ?? '',
+  TurnstileSecretKey: values.TurnstileSecretKey ?? '',
+  'aliyun_captcha.enabled': values.aliyun_captcha.enabled,
+  'aliyun_captcha.region': values.aliyun_captcha.region || 'cn',
+  'aliyun_captcha.prefix': values.aliyun_captcha.prefix ?? '',
+  'aliyun_captcha.scene_id': values.aliyun_captcha.scene_id || '1fu9scwz',
+})
 
 export function BotProtectionSection({
   defaultValues,
 }: BotProtectionSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
+  const formDefaults = useMemo(
+    () => buildFormDefaults(defaultValues),
+    [defaultValues]
+  )
 
   const form = useForm<BotProtectionFormValues>({
     resolver: zodResolver(botProtectionSchema),
-    defaultValues,
+    defaultValues: formDefaults,
   })
+  const baselineRef = useRef<FlatBotProtectionDefaults>(defaultValues)
+  const baselineSerializedRef = useRef(JSON.stringify(defaultValues))
 
   useEffect(() => {
-    form.reset(defaultValues)
+    const serialized = JSON.stringify(defaultValues)
+    if (serialized === baselineSerializedRef.current) return
+    baselineRef.current = defaultValues
+    baselineSerializedRef.current = serialized
+    form.reset(buildFormDefaults(defaultValues))
   }, [defaultValues, form])
 
   const onSubmit = async (data: BotProtectionFormValues) => {
-    const updates = Object.entries(data).filter(
+    const normalized = normalizeFormValues(data)
+    const updates = Object.entries(normalized).filter(
       ([key, value]) =>
-        value !== defaultValues[key as keyof BotProtectionFormValues]
+        value !== baselineRef.current[key as keyof FlatBotProtectionDefaults]
     )
 
     for (const [key, value] of updates) {
       await updateOption.mutateAsync({ key, value: value ?? '' })
     }
+
+    baselineRef.current = normalized
+    baselineSerializedRef.current = JSON.stringify(normalized)
+    form.reset(buildFormDefaults(normalized))
   }
 
   return (
