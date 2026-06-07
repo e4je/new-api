@@ -3,6 +3,20 @@
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "Aliyun Captcha prefix": "Aliyun Captcha prefix",
+    "Aliyun ESA AI Captcha": "Aliyun ESA AI Captcha",
+    "Captcha is not ready": "Captcha is not ready",
+    "Captcha is still loading": "Captcha is still loading",
+    "Captcha Mode": "Captcha Mode",
+    "Captcha verification failed": "Captcha verification failed",
+    "Enable Aliyun Captcha": "Enable Aliyun Captcha",
+    "Failed to load Aliyun Captcha": "Failed to load Aliyun Captcha",
+    "Identity Prefix": "Identity Prefix",
+    "Require Aliyun ESA AI Captcha before password sign-in": "Require Aliyun ESA AI Captcha before password sign-in",
+    "Scene ID": "Scene ID",
+    "Script URL": "Script URL",
+    "Use cn or sgp": "Use cn or sgp",
+    "Use popup or embed": "Use popup or embed",
     "_copy": "_copy",
     "，": ", ",
     ", and": ", and",
@@ -4548,4 +4562,3 @@
     "Zoom": "Zoom"
   }
 }
-

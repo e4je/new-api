@@ -26,6 +26,8 @@ export interface LoginPayload {
   username: string
   password: string
   turnstile?: string
+  aliyunCaptchaVerifyParam?: string
+  requireAliyunCaptcha?: boolean
 }
 
 export interface TwoFAPayload {
@@ -112,6 +114,7 @@ export interface SystemStatus {
     WeChatAccountQRCodeImageURL?: string
     turnstile_check?: boolean
     turnstile_site_key?: string
+    aliyun_captcha?: AliyunCaptchaStatus
     email_verification?: boolean
     self_use_mode_enabled?: boolean
     display_in_currency?: boolean
@@ -155,6 +158,7 @@ export interface SystemStatus {
   WeChatAccountQRCodeImageURL?: string
   turnstile_check?: boolean
   turnstile_site_key?: string
+  aliyun_captcha?: AliyunCaptchaStatus
   email_verification?: boolean
   self_use_mode_enabled?: boolean
   display_in_currency?: boolean
@@ -195,6 +199,15 @@ export interface CustomOAuthProviderInfo {
   client_id: string
   authorization_endpoint: string
   scopes: string
+}
+
+export interface AliyunCaptchaStatus {
+  enabled?: boolean
+  region?: string
+  prefix?: string
+  scene_id?: string
+  mode?: string
+  script_url?: string
 }
 
 // ============================================================================

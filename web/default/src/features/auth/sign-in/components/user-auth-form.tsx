@@ -50,9 +50,13 @@ import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
 import { loginFormSchema } from '@/features/auth/constants'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
+import { useAliyunCaptcha } from '@/features/auth/hooks/use-aliyun-captcha'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
-import type { AuthFormProps } from '@/features/auth/types'
+import type {
+  AliyunCaptchaStatus,
+  AuthFormProps,
+} from '@/features/auth/types'
 
 export function UserAuthForm({
   className,
@@ -85,6 +89,9 @@ export function UserAuthForm({
     setTurnstileToken,
     validateTurnstile,
   } = useTurnstile()
+  const aliyunCaptchaConfig = (status?.aliyun_captcha ||
+    status?.data?.aliyun_captcha) as AliyunCaptchaStatus | undefined
+  const aliyunCaptcha = useAliyunCaptcha(aliyunCaptchaConfig)
   const { handleLoginSuccess, redirectTo2FA } = useAuthRedirect()
 
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
@@ -142,20 +149,18 @@ export function UserAuthForm({
     )
   }, [status])
 
-  async function onSubmit(data: z.infer<typeof loginFormSchema>) {
-    if (requiresLegalConsent && !agreedToLegal) {
-      toast.error(legalConsentErrorMessage)
-      return
-    }
-
-    if (!validateTurnstile()) return
-
+  async function submitLogin(
+    data: z.infer<typeof loginFormSchema>,
+    aliyunCaptchaVerifyParam?: string
+  ) {
     setIsLoading(true)
     try {
       const res = await login({
         username: data.username,
         password: data.password,
         turnstile: turnstileToken,
+        aliyunCaptchaVerifyParam,
+        requireAliyunCaptcha: aliyunCaptcha.enabled,
       })
 
       if (res.success) {
@@ -166,12 +171,32 @@ export function UserAuthForm({
 
         await handleLoginSuccess(res.data as { id?: number } | null, redirectTo)
         toast.success(t('Welcome back!'))
+      } else {
+        toast.error(res.message || loginFailedMessage)
       }
     } catch (_error) {
       // Errors are handled by global interceptor
     } finally {
       setIsLoading(false)
     }
+  }
+
+  async function onSubmit(data: z.infer<typeof loginFormSchema>) {
+    if (requiresLegalConsent && !agreedToLegal) {
+      toast.error(legalConsentErrorMessage)
+      return
+    }
+
+    if (!validateTurnstile()) return
+
+    if (aliyunCaptcha.enabled) {
+      const handled = aliyunCaptcha.trigger((captchaVerifyParam) => {
+        void submitLogin(data, captchaVerifyParam)
+      })
+      if (handled) return
+    }
+
+    await submitLogin(data)
   }
 
   const handleOpenWeChatDialog = () => {
@@ -375,11 +400,29 @@ export function UserAuthForm({
             <Button
               type='submit'
               className='mt-2 w-full justify-center gap-2'
-              disabled={isLoading || (requiresLegalConsent && !agreedToLegal)}
+              disabled={
+                isLoading ||
+                aliyunCaptcha.initializing ||
+                (requiresLegalConsent && !agreedToLegal)
+              }
+              id='aliyun-captcha-login-button'
             >
               {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
               {t('Sign in')}
             </Button>
+
+            {aliyunCaptcha.enabled && (
+              <>
+                <div id={aliyunCaptcha.elementId} className='hidden' />
+                <button
+                  id={aliyunCaptcha.triggerButtonId}
+                  type='button'
+                  className='hidden'
+                  tabIndex={-1}
+                  aria-hidden='true'
+                />
+              </>
+            )}
 
             {/* Turnstile */}
             {isTurnstileEnabled && (

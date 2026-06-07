@@ -36,6 +36,12 @@ const STATUS_RELATED_KEYS = [
   'general_setting.quota_display_type',
   'general_setting.custom_currency_symbol',
   'general_setting.custom_currency_exchange_rate',
+  'aliyun_captcha.enabled',
+  'aliyun_captcha.region',
+  'aliyun_captcha.prefix',
+  'aliyun_captcha.scene_id',
+  'aliyun_captcha.mode',
+  'aliyun_captcha.script_url',
 ]
 
 export function useUpdateOption() {

@@ -42,8 +42,23 @@ export async function login(payload: LoginPayload) {
     {
       username: payload.username,
       password: payload.password,
+    },
+    {
+      headers: payload.aliyunCaptchaVerifyParam
+        ? { 'captcha-verify-param': payload.aliyunCaptchaVerifyParam }
+        : undefined,
+      skipBusinessError: true,
     }
   )
+  if (payload.requireAliyunCaptcha) {
+    const verifyCode = res.headers['x-captcha-verify-code']
+    if (verifyCode !== 'T001') {
+      return {
+        success: false,
+        message: `Captcha verification failed: ${verifyCode || 'missing'}`,
+      }
+    }
+  }
   return res.data
 }
 
