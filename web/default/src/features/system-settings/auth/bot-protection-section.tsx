@@ -49,8 +49,6 @@ const botProtectionSchema = z.object({
   'aliyun_captcha.region': z.string().optional(),
   'aliyun_captcha.prefix': z.string().optional(),
   'aliyun_captcha.scene_id': z.string().optional(),
-  'aliyun_captcha.mode': z.string().optional(),
-  'aliyun_captcha.script_url': z.string().url().optional().or(z.literal('')),
 })
 
 type BotProtectionFormValues = z.infer<typeof botProtectionSchema>
@@ -184,32 +182,20 @@ export function BotProtectionSection({
 
           <FormField
             control={form.control}
-            name='aliyun_captcha.region'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Region')}</FormLabel>
-                <FormControl>
-                  <Input placeholder='cn' autoComplete='off' {...field} />
-                </FormControl>
-                <FormDescription>{t('Use cn or sgp')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
             name='aliyun_captcha.prefix'
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('Identity Prefix')}</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder={t('Aliyun Captcha prefix')}
+                    placeholder={t('Aliyun Captcha identity prefix')}
                     autoComplete='off'
                     {...field}
                   />
                 </FormControl>
+                <FormDescription>
+                  {t('Fill in the Aliyun Captcha identity prefix.')}
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -231,32 +217,14 @@ export function BotProtectionSection({
 
           <FormField
             control={form.control}
-            name='aliyun_captcha.mode'
+            name='aliyun_captcha.region'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('Captcha Mode')}</FormLabel>
+                <FormLabel>{t('Region')}</FormLabel>
                 <FormControl>
-                  <Input placeholder='popup' autoComplete='off' {...field} />
+                  <Input placeholder='cn' autoComplete='off' {...field} />
                 </FormControl>
-                <FormDescription>{t('Use popup or embed')}</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name='aliyun_captcha.script_url'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Script URL')}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder='https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js'
-                    autoComplete='off'
-                    {...field}
-                  />
-                </FormControl>
+                <FormDescription>{t('Default is cn.')}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

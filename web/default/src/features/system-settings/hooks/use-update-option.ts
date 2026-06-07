@@ -40,8 +40,6 @@ const STATUS_RELATED_KEYS = [
   'aliyun_captcha.region',
   'aliyun_captcha.prefix',
   'aliyun_captcha.scene_id',
-  'aliyun_captcha.mode',
-  'aliyun_captcha.script_url',
 ]
 
 export function useUpdateOption() {

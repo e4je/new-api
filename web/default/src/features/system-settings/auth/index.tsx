@@ -63,9 +63,6 @@ const defaultAuthSettings: AuthSettings = {
   'aliyun_captcha.region': 'cn',
   'aliyun_captcha.prefix': '',
   'aliyun_captcha.scene_id': '1fu9scwz',
-  'aliyun_captcha.mode': 'popup',
-  'aliyun_captcha.script_url':
-    'https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js',
   'passkey.enabled': false,
   'passkey.rp_display_name': '',
   'passkey.rp_id': '',

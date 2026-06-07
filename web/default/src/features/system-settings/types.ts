@@ -110,8 +110,6 @@ export type AuthSettings = {
   'aliyun_captcha.region': string
   'aliyun_captcha.prefix': string
   'aliyun_captcha.scene_id': string
-  'aliyun_captcha.mode': string
-  'aliyun_captcha.script_url': string
   'passkey.enabled': boolean
   'passkey.rp_display_name': string
   'passkey.rp_id': string
