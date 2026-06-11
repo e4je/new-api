@@ -3,6 +3,22 @@
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "Aliyun Captcha scene ID": "ID сценария Aliyun Captcha",
+    "Aliyun Captcha identity prefix": "Префикс идентификатора Aliyun Captcha",
+    "Aliyun ESA AI Captcha": "Aliyun ESA AI Captcha",
+    "Captcha is not ready": "Captcha еще не готова",
+    "Captcha is still loading": "Captcha все еще загружается",
+    "Captcha verification failed": "Проверка Captcha не удалась",
+    "Default is cn.": "По умолчанию cn.",
+    "Enable Aliyun Captcha": "Включить Aliyun Captcha",
+    "Failed to load Aliyun Captcha": "Не удалось загрузить Aliyun Captcha",
+    "Fill in the identity prefix from Aliyun ESA AI Captcha.": "Укажите префикс идентификатора из Aliyun ESA AI Captcha.",
+    "Fill in the Aliyun Captcha identity prefix.": "Укажите префикс идентификатора Aliyun Captcha.",
+    "Identity Prefix": "Префикс идентификатора",
+    "Identity Prefix is required when Aliyun Captcha is enabled.": "Префикс идентификатора обязателен, когда Aliyun Captcha включена.",
+    "Require Aliyun ESA AI Captcha before password sign-in": "Требовать Aliyun ESA AI Captcha перед входом по паролю",
+    "Scene ID": "ID сценария",
+    "Scene ID is required when Aliyun Captcha is enabled.": "ID сценария обязателен, когда Aliyun Captcha включена.",
     "_copy": "_копировать",
     "，": ", ",
     ", and": ", и",
@@ -4548,4 +4564,3 @@
     "Zoom": "Zoom"
   }
 }
-

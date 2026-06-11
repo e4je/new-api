@@ -3,6 +3,22 @@
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "Aliyun Captcha scene ID": "ID de scène Aliyun Captcha",
+    "Aliyun Captcha identity prefix": "Préfixe d'identité Aliyun Captcha",
+    "Aliyun ESA AI Captcha": "Aliyun ESA AI Captcha",
+    "Captcha is not ready": "Le captcha n'est pas prêt",
+    "Captcha is still loading": "Le captcha est encore en cours de chargement",
+    "Captcha verification failed": "La vérification du captcha a échoué",
+    "Default is cn.": "La valeur par défaut est cn.",
+    "Enable Aliyun Captcha": "Activer Aliyun Captcha",
+    "Failed to load Aliyun Captcha": "Échec du chargement d'Aliyun Captcha",
+    "Fill in the identity prefix from Aliyun ESA AI Captcha.": "Renseignez le préfixe d'identité depuis Aliyun ESA AI Captcha.",
+    "Fill in the Aliyun Captcha identity prefix.": "Renseignez le préfixe d'identité Aliyun Captcha.",
+    "Identity Prefix": "Préfixe d'identité",
+    "Identity Prefix is required when Aliyun Captcha is enabled.": "Le préfixe d'identité est requis lorsque Aliyun Captcha est activé.",
+    "Require Aliyun ESA AI Captcha before password sign-in": "Exiger Aliyun ESA AI Captcha avant la connexion par mot de passe",
+    "Scene ID": "ID de scène",
+    "Scene ID is required when Aliyun Captcha is enabled.": "L'ID de scène est requis lorsque Aliyun Captcha est activé.",
     "_copy": "_copie",
     "，": ", ",
     ", and": ", et",
@@ -4548,4 +4564,3 @@
     "Zoom": "Zoom"
   }
 }
-

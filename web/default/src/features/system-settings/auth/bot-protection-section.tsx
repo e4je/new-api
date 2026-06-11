@@ -45,12 +45,27 @@ const botProtectionSchema = z.object({
   TurnstileCheckEnabled: z.boolean(),
   TurnstileSiteKey: z.string().optional(),
   TurnstileSecretKey: z.string().optional(),
-  aliyun_captcha: z.object({
-    enabled: z.boolean(),
-    region: z.string().optional(),
-    prefix: z.string().optional(),
-    scene_id: z.string().optional(),
-  }),
+  aliyunCaptchaEnabled: z.boolean(),
+  aliyunCaptchaPrefix: z.string().optional(),
+  aliyunCaptchaSceneId: z.string().optional(),
+}).superRefine((values, ctx) => {
+  if (!values.aliyunCaptchaEnabled) return
+
+  if (!values.aliyunCaptchaPrefix?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['aliyunCaptchaPrefix'],
+      message: 'Identity Prefix is required when Aliyun Captcha is enabled.',
+    })
+  }
+
+  if (!values.aliyunCaptchaSceneId?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['aliyunCaptchaSceneId'],
+      message: 'Scene ID is required when Aliyun Captcha is enabled.',
+    })
+  }
 })
 
 type BotProtectionFormValues = z.infer<typeof botProtectionSchema>
@@ -75,24 +90,22 @@ const buildFormDefaults = (
   TurnstileCheckEnabled: defaults.TurnstileCheckEnabled,
   TurnstileSiteKey: defaults.TurnstileSiteKey ?? '',
   TurnstileSecretKey: defaults.TurnstileSecretKey ?? '',
-  aliyun_captcha: {
-    enabled: defaults['aliyun_captcha.enabled'],
-    region: defaults['aliyun_captcha.region'] || 'cn',
-    prefix: defaults['aliyun_captcha.prefix'] ?? '',
-    scene_id: defaults['aliyun_captcha.scene_id'] || '1fu9scwz',
-  },
+  aliyunCaptchaEnabled: defaults['aliyun_captcha.enabled'],
+  aliyunCaptchaPrefix: defaults['aliyun_captcha.prefix'] ?? '',
+  aliyunCaptchaSceneId: defaults['aliyun_captcha.scene_id'] ?? '',
 })
 
 const normalizeFormValues = (
-  values: BotProtectionFormValues
+  values: BotProtectionFormValues,
+  current: FlatBotProtectionDefaults
 ): FlatBotProtectionDefaults => ({
   TurnstileCheckEnabled: values.TurnstileCheckEnabled,
   TurnstileSiteKey: values.TurnstileSiteKey ?? '',
   TurnstileSecretKey: values.TurnstileSecretKey ?? '',
-  'aliyun_captcha.enabled': values.aliyun_captcha.enabled,
-  'aliyun_captcha.region': values.aliyun_captcha.region || 'cn',
-  'aliyun_captcha.prefix': values.aliyun_captcha.prefix ?? '',
-  'aliyun_captcha.scene_id': values.aliyun_captcha.scene_id || '1fu9scwz',
+  'aliyun_captcha.enabled': values.aliyunCaptchaEnabled,
+  'aliyun_captcha.region': current['aliyun_captcha.region'] || 'cn',
+  'aliyun_captcha.prefix': values.aliyunCaptchaPrefix?.trim() ?? '',
+  'aliyun_captcha.scene_id': values.aliyunCaptchaSceneId?.trim() ?? '',
 })
 
 export function BotProtectionSection({
@@ -121,13 +134,18 @@ export function BotProtectionSection({
   }, [defaultValues, form])
 
   const onSubmit = async (data: BotProtectionFormValues) => {
-    const normalized = normalizeFormValues(data)
+    const normalized = normalizeFormValues(data, baselineRef.current)
     const updates = Object.entries(normalized).filter(
       ([key, value]) =>
         value !== baselineRef.current[key as keyof FlatBotProtectionDefaults]
     )
+    const orderedUpdates = updates.sort(([leftKey], [rightKey]) => {
+      if (leftKey === 'aliyun_captcha.enabled') return 1
+      if (rightKey === 'aliyun_captcha.enabled') return -1
+      return 0
+    })
 
-    for (const [key, value] of updates) {
+    for (const [key, value] of orderedUpdates) {
       await updateOption.mutateAsync({ key, value: value ?? '' })
     }
 
@@ -212,7 +230,7 @@ export function BotProtectionSection({
           </div>
           <FormField
             control={form.control}
-            name='aliyun_captcha.enabled'
+            name='aliyunCaptchaEnabled'
             render={({ field }) => (
               <SettingsSwitchItem>
                 <SettingsSwitchContent>
@@ -235,7 +253,7 @@ export function BotProtectionSection({
 
           <FormField
             control={form.control}
-            name='aliyun_captcha.prefix'
+            name='aliyunCaptchaPrefix'
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('Identity Prefix')}</FormLabel>
@@ -247,7 +265,9 @@ export function BotProtectionSection({
                   />
                 </FormControl>
                 <FormDescription>
-                  {t('Fill in the Aliyun Captcha identity prefix.')}
+                  {t(
+                    'Fill in the identity prefix from Aliyun ESA AI Captcha.'
+                  )}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -256,28 +276,17 @@ export function BotProtectionSection({
 
           <FormField
             control={form.control}
-            name='aliyun_captcha.scene_id'
+            name='aliyunCaptchaSceneId'
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('Scene ID')}</FormLabel>
                 <FormControl>
-                  <Input placeholder='1fu9scwz' autoComplete='off' {...field} />
+                  <Input
+                    placeholder={t('Aliyun Captcha scene ID')}
+                    autoComplete='off'
+                    {...field}
+                  />
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name='aliyun_captcha.region'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Region')}</FormLabel>
-                <FormControl>
-                  <Input placeholder='cn' autoComplete='off' {...field} />
-                </FormControl>
-                <FormDescription>{t('Default is cn.')}</FormDescription>
                 <FormMessage />
               </FormItem>
             )}

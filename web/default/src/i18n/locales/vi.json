@@ -3,6 +3,22 @@
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "Aliyun Captcha scene ID": "ID cảnh Aliyun Captcha",
+    "Aliyun Captcha identity prefix": "Tiền tố định danh Aliyun Captcha",
+    "Aliyun ESA AI Captcha": "Aliyun ESA AI Captcha",
+    "Captcha is not ready": "Captcha chưa sẵn sàng",
+    "Captcha is still loading": "Captcha vẫn đang tải",
+    "Captcha verification failed": "Xác minh Captcha thất bại",
+    "Default is cn.": "Mặc định là cn.",
+    "Enable Aliyun Captcha": "Bật Aliyun Captcha",
+    "Failed to load Aliyun Captcha": "Không thể tải Aliyun Captcha",
+    "Fill in the identity prefix from Aliyun ESA AI Captcha.": "Nhập tiền tố định danh từ Aliyun ESA AI Captcha.",
+    "Fill in the Aliyun Captcha identity prefix.": "Nhập tiền tố định danh Aliyun Captcha.",
+    "Identity Prefix": "Tiền tố định danh",
+    "Identity Prefix is required when Aliyun Captcha is enabled.": "Cần nhập tiền tố định danh khi bật Aliyun Captcha.",
+    "Require Aliyun ESA AI Captcha before password sign-in": "Yêu cầu Aliyun ESA AI Captcha trước khi đăng nhập bằng mật khẩu",
+    "Scene ID": "ID cảnh",
+    "Scene ID is required when Aliyun Captcha is enabled.": "Cần nhập ID cảnh khi bật Aliyun Captcha.",
     "_copy": "_bản sao",
     "，": ", ",
     ", and": ", và",
@@ -4548,4 +4564,3 @@
     "Zoom": "Zoom"
   }
 }
-

@@ -207,6 +207,17 @@ func UpdateOption(c *gin.Context) {
 
 			return
 		}
+	case "aliyun_captcha.enabled":
+		aliyunCaptchaSetting := system_setting.GetAliyunCaptchaSettings()
+		if option.Value == "true" &&
+			(strings.TrimSpace(aliyunCaptchaSetting.Prefix) == "" ||
+				strings.TrimSpace(aliyunCaptchaSetting.SceneId) == "") {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": "无法启用阿里云验证码，请先填入身份标和场景 ID！",
+			})
+			return
+		}
 	case "TelegramOAuthEnabled":
 		if option.Value == "true" && common.TelegramBotToken == "" {
 			c.JSON(http.StatusOK, gin.H{

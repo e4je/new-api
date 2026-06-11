@@ -15,7 +15,7 @@ var defaultAliyunCaptchaSettings = AliyunCaptchaSettings{
 	Enabled:   false,
 	Region:    "cn",
 	Prefix:    "",
-	SceneId:   "1fu9scwz",
+	SceneId:   "",
 	Mode:      "popup",
 	ScriptUrl: "https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js",
 }
