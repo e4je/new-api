@@ -33,6 +33,8 @@ import {
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import {
+  SettingsControlChildren,
+  SettingsControlGroup,
   SettingsForm,
   SettingsSwitchContent,
   SettingsSwitchItem,
@@ -228,69 +230,73 @@ export function BotProtectionSection({
           <div className='text-muted-foreground border-t pt-5 text-sm lg:col-span-2'>
             {t('Aliyun ESA AI Captcha')}
           </div>
-          <FormField
-            control={form.control}
-            name='aliyunCaptchaEnabled'
-            render={({ field }) => (
-              <SettingsSwitchItem>
-                <SettingsSwitchContent>
-                  <FormLabel>{t('Enable Aliyun Captcha')}</FormLabel>
-                  <FormDescription>
-                    {t(
-                      'Require Aliyun ESA AI Captcha before password sign-in'
-                    )}
-                  </FormDescription>
-                </SettingsSwitchContent>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </SettingsSwitchItem>
-            )}
-          />
+          <SettingsControlGroup className='space-y-4'>
+            <FormField
+              control={form.control}
+              name='aliyunCaptchaEnabled'
+              render={({ field }) => (
+                <SettingsSwitchItem className='border-b-0 py-0'>
+                  <SettingsSwitchContent>
+                    <FormLabel>{t('Enable Aliyun Captcha')}</FormLabel>
+                    <FormDescription>
+                      {t(
+                        'Require Aliyun ESA AI Captcha before password sign-in'
+                      )}
+                    </FormDescription>
+                  </SettingsSwitchContent>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </SettingsSwitchItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name='aliyunCaptchaPrefix'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Identity Prefix')}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder={t('Aliyun Captcha identity prefix')}
-                    autoComplete='off'
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  {t(
-                    'Fill in the identity prefix from Aliyun ESA AI Captcha.'
-                  )}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <SettingsControlChildren className='grid gap-4 md:grid-cols-2'>
+              <FormField
+                control={form.control}
+                name='aliyunCaptchaPrefix'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Identity Prefix')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('Aliyun Captcha identity prefix')}
+                        autoComplete='off'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Fill in the identity prefix from Aliyun ESA AI Captcha.'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-          <FormField
-            control={form.control}
-            name='aliyunCaptchaSceneId'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Scene ID')}</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder={t('Aliyun Captcha scene ID')}
-                    autoComplete='off'
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              <FormField
+                control={form.control}
+                name='aliyunCaptchaSceneId'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Scene ID')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('Aliyun Captcha scene ID')}
+                        autoComplete='off'
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SettingsControlChildren>
+          </SettingsControlGroup>
         </SettingsForm>
       </Form>
     </SettingsSection>
