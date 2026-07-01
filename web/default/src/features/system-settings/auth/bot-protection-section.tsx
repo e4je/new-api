@@ -1,3 +1,4 @@
+import { zodResolver } from '@hookform/resolvers/zod'
 /*
 Copyright (C) 2023-2026 QuantumNous
 
@@ -17,10 +18,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useMemo, useRef } from 'react'
-import * as z from 'zod'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
+import * as z from 'zod'
+
 import {
   Form,
   FormControl,
@@ -32,6 +33,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+
 import {
   SettingsControlChildren,
   SettingsControlGroup,
@@ -43,32 +45,34 @@ import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
 
-const botProtectionSchema = z.object({
-  TurnstileCheckEnabled: z.boolean(),
-  TurnstileSiteKey: z.string().optional(),
-  TurnstileSecretKey: z.string().optional(),
-  aliyunCaptchaEnabled: z.boolean(),
-  aliyunCaptchaPrefix: z.string().optional(),
-  aliyunCaptchaSceneId: z.string().optional(),
-}).superRefine((values, ctx) => {
-  if (!values.aliyunCaptchaEnabled) return
+const botProtectionSchema = z
+  .object({
+    TurnstileCheckEnabled: z.boolean(),
+    TurnstileSiteKey: z.string().optional(),
+    TurnstileSecretKey: z.string().optional(),
+    aliyunCaptchaEnabled: z.boolean(),
+    aliyunCaptchaPrefix: z.string().optional(),
+    aliyunCaptchaSceneId: z.string().optional(),
+  })
+  .superRefine((values, ctx) => {
+    if (!values.aliyunCaptchaEnabled) return
 
-  if (!values.aliyunCaptchaPrefix?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['aliyunCaptchaPrefix'],
-      message: 'Identity Prefix is required when Aliyun Captcha is enabled.',
-    })
-  }
+    if (!values.aliyunCaptchaPrefix?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['aliyunCaptchaPrefix'],
+        message: 'Identity Prefix is required when Aliyun Captcha is enabled.',
+      })
+    }
 
-  if (!values.aliyunCaptchaSceneId?.trim()) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['aliyunCaptchaSceneId'],
-      message: 'Scene ID is required when Aliyun Captcha is enabled.',
-    })
-  }
-})
+    if (!values.aliyunCaptchaSceneId?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['aliyunCaptchaSceneId'],
+        message: 'Scene ID is required when Aliyun Captcha is enabled.',
+      })
+    }
+  })
 
 type BotProtectionFormValues = z.infer<typeof botProtectionSchema>
 
