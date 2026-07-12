@@ -17,8 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+
 import type { AliyunCaptchaStatus } from '@/features/auth/types'
 
 declare global {
@@ -35,6 +36,7 @@ declare global {
       success: (captchaVerifyParam: string) => void
       fail?: (result: unknown) => void
       getInstance: (instance: { refresh?: () => void }) => void
+      server?: string[]
       slideStyle?: {
         width: number
         height: number
@@ -46,7 +48,11 @@ declare global {
 const DEFAULT_SCRIPT_URL =
   'https://o.alicdn.com/captcha-frontend/aliyunCaptcha/AliyunCaptcha.js'
 
-type VerifyCallback = (captchaVerifyParam: string) => void
+const ALIYUN_CAPTCHA_SERVERS = [
+  'captcha-esa-open.aliyuncs.com',
+  'captcha-esa-open-b.aliyuncs.com',
+]
+type VerifyCallback = (captchaVerifyParam: string) => Promise<void> | void
 
 function loadAliyunCaptchaScript(scriptUrl: string) {
   const existing = document.querySelector<HTMLScriptElement>(
@@ -84,9 +90,7 @@ export function useAliyunCaptcha(config?: AliyunCaptchaStatus) {
   const triggerButtonId = 'aliyun-captcha-login-trigger'
   const elementId = 'aliyun-captcha-login-element'
 
-  const enabled = Boolean(
-    config?.enabled && config?.prefix && config?.scene_id
-  )
+  const enabled = Boolean(config?.enabled && config?.prefix && config?.scene_id)
 
   const normalizedConfig = useMemo(
     () => ({
@@ -115,7 +119,7 @@ export function useAliyunCaptcha(config?: AliyunCaptchaStatus) {
       prefix: normalizedConfig.prefix,
     }
 
-    loadAliyunCaptchaScript(normalizedConfig.scriptUrl)
+    void loadAliyunCaptchaScript(normalizedConfig.scriptUrl)
       .then(() => {
         if (cancelled) return
         if (!window.initAliyunCaptcha) {
@@ -128,8 +132,11 @@ export function useAliyunCaptcha(config?: AliyunCaptchaStatus) {
           element: `#${elementId}`,
           button: `#${triggerButtonId}`,
           success: (captchaVerifyParam) => {
-            verifyCallbackRef.current?.(captchaVerifyParam)
-            captchaRef.current?.refresh?.()
+            void Promise.resolve(
+              verifyCallbackRef.current?.(captchaVerifyParam)
+            )
+              .catch(() => undefined)
+              .finally(() => captchaRef.current?.refresh?.())
           },
           fail: () => {
             toast.error(t('Captcha verification failed'))
@@ -141,6 +148,7 @@ export function useAliyunCaptcha(config?: AliyunCaptchaStatus) {
             width: 320,
             height: 40,
           },
+          server: ALIYUN_CAPTCHA_SERVERS,
         })
 
         initializedRef.current = true
