@@ -782,23 +782,6 @@ export const useChannelsData = () => {
     }
   };
 
-  const setChannelManualBalance = async (record, balanceValue) => {
-    const res = await API.post(`/api/channel/manual_balance/${record.id}/`, {
-      manual_balance: balanceValue === '' || balanceValue === null ? null : parseFloat(balanceValue),
-    });
-    const { success, message, manual_balance } = res.data;
-    if (success) {
-      updateChannelProperty(record.id, (channel) => {
-        channel.manual_balance = manual_balance;
-      });
-      showInfo(
-        t('通道 ${name} 手动余额设置成功！').replace('${name}', record.name),
-      );
-    } else {
-      showError(message);
-    }
-  };
-
   const fixChannelsAbilities = async () => {
     const res = await API.post(`/api/channel/fix`);
     const { success, message, data } = res.data;
@@ -1250,7 +1233,6 @@ export const useChannelsData = () => {
     deleteAllDisabledChannels,
     updateAllChannelsBalance,
     updateChannelBalance,
-    setChannelManualBalance,
     fixChannelsAbilities,
     checkOllamaVersion,
     testChannel,

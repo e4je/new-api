@@ -33,7 +33,6 @@ import {
   timestamp2string,
   renderGroup,
   renderQuota,
-  renderNumber,
   getChannelIcon,
   renderQuotaWithAmount,
   showSuccess,
@@ -51,40 +50,6 @@ import {
   IconAlertTriangle,
 } from '@douyinfe/semi-icons';
 import { FaRandom } from 'react-icons/fa';
-
-const parseChannelSetting = (record) => {
-  try {
-    return typeof record.setting === 'string'
-      ? JSON.parse(record.setting)
-      : (record.setting || {});
-  } catch (e) {
-    return {};
-  }
-};
-
-const getChannelLimitStats = (record) => {
-  const channelSetting = parseChannelSetting(record);
-  const hourlyLimit = Number(channelSetting.hourly_call_limit) || 0;
-  const dailyLimit = Number(channelSetting.daily_call_limit) || 0;
-  const weeklyLimit = Number(channelSetting.weekly_call_limit) || 0;
-  // 小时计数：滑动窗口，从时间戳数组计算
-  const hourlyTimestamps = record.channel_info?.hourly_call_timestamps || [];
-  const hourlyCount = Array.isArray(hourlyTimestamps) ? hourlyTimestamps.length : 0;
-  const dailyCount = Number(record.channel_info?.daily_call_count) || 0;
-  const weeklyCount = Number(record.channel_info?.weekly_call_count) || 0;
-
-  return {
-    hourlyLimit,
-    dailyLimit,
-    weeklyLimit,
-    hourlyCount,
-    dailyCount,
-    weeklyCount,
-    hourlyRemaining: hourlyLimit > 0 ? Math.max(0, hourlyLimit - hourlyCount) : null,
-    dailyRemaining: dailyLimit > 0 ? Math.max(0, dailyLimit - dailyCount) : null,
-    weeklyRemaining: weeklyLimit > 0 ? Math.max(0, weeklyLimit - weeklyCount) : null,
-  };
-};
 
 // Render functions
 const renderType = (type, record = {}, t) => {
@@ -343,7 +308,6 @@ export const getChannelsColumns = ({
   t,
   COLUMN_KEYS,
   updateChannelBalance,
-  setChannelManualBalance,
   manageChannel,
   manageTag,
   submitTagEdit,
@@ -564,109 +528,44 @@ export const getChannelsColumns = ({
       dataIndex: 'expired_time',
       render: (text, record, index) => {
         if (record.children === undefined) {
-          const { hourlyLimit, dailyLimit, weeklyLimit, hourlyRemaining, dailyRemaining, weeklyRemaining } =
-            getChannelLimitStats(record);
-          const hasHourlyLimit = hourlyRemaining !== null;
-          const hasDailyLimit = dailyRemaining !== null;
-
-          // 总额度模式：剩余 = manual_balance - used_quota
-          const hasManualBalance =
-            record.manual_balance !== null &&
-            record.manual_balance !== undefined &&
-            Number(record.manual_balance) > 0;
-          // used_quota 是 token 数，转为美元金额显示（1$ = quotaPerUnit tokens）
-          const usedQuota = Number(record.used_quota) || 0;
-          const quotaPerUnit = parseFloat(localStorage.getItem('quota_per_unit')) || 500000;
-          const usedQuotaUsd = usedQuota / quotaPerUnit;
-          const manualBalanceTotal = hasManualBalance
-            ? Number(record.manual_balance) || 0
-            : 0;
-          const manualBalanceRemaining = hasManualBalance
-            ? Math.max(0, manualBalanceTotal - usedQuotaUsd)
-            : null;
-
           return (
             <div>
               <Space spacing={1}>
-                <Tooltip content={t('已用次数（1次=$1）')}>
+                <Tooltip content={t('已用额度')}>
                   <Tag color='white' type='ghost' shape='circle'>
-                    {renderQuotaWithAmount(usedQuotaUsd)}
+                    {renderQuota(record.used_quota)}
                   </Tag>
                 </Tooltip>
-                {hasManualBalance ? (
-                  <Tooltip content={t('剩余次数 = 总数量 - 已用数量')}>
-                    <Tag color='green' type='light' shape='circle'>
-                      {renderQuotaWithAmount(manualBalanceRemaining)}
-                    </Tag>
-                  </Tooltip>
-                ) : (
-                  <Tooltip
-                    content={
-                      record.type === 57
-                        ? t('查看 Codex 帐号信息与用量')
-                        : t('剩余额度') +
-                          ': ' +
-                          renderQuotaWithAmount(record.balance) +
-                          t('，点击更新')
-                    }
+                <Tooltip
+                  content={
+                    record.type === 57
+                      ? t('查看 Codex 帐号信息与用量')
+                      : t('剩余额度') +
+                        ': ' +
+                        renderQuotaWithAmount(record.balance) +
+                        t('，点击更新')
+                  }
+                >
+                  <Tag
+                    color={record.type === 57 ? 'light-blue' : 'white'}
+                    type={record.type === 57 ? 'light' : 'ghost'}
+                    shape='circle'
+                    className={record.type === 57 ? 'cursor-pointer' : ''}
+                    onClick={() => updateChannelBalance(record)}
                   >
-                    <Tag
-                      color={record.type === 57 ? 'light-blue' : 'white'}
-                      type={record.type === 57 ? 'light' : 'ghost'}
-                      shape='circle'
-                      className={record.type === 57 ? 'cursor-pointer' : ''}
-                      onClick={() => updateChannelBalance(record)}
-                    >
-                      {record.type === 57
-                        ? t('帐号信息')
-                        : renderQuotaWithAmount(record.balance)}
-                    </Tag>
-                  </Tooltip>
-                )}
-                {hourlyRemaining !== null && (
-                  <Tooltip content={t('每小时调用限制剩余')}>
-                    <Tag
-                      color={hourlyRemaining > 0 ? 'orange' : 'red'}
-                      type='light'
-                      shape='circle'
-                      size='small'
-                    >
-                      时:{hourlyRemaining}/{hourlyLimit}
-                    </Tag>
-                  </Tooltip>
-                )}
-                {dailyRemaining !== null && (
-                  <Tooltip content={t('每天调用限制剩余')}>
-                    <Tag
-                      color={dailyRemaining > 0 ? 'orange' : 'red'}
-                      type='light'
-                      shape='circle'
-                      size='small'
-                    >
-                      天:{dailyRemaining}/{dailyLimit}
-                    </Tag>
-                  </Tooltip>
-                )}
-                {weeklyRemaining !== null && (
-                  <Tooltip content={t('每周调用限制剩余')}>
-                    <Tag
-                      color={weeklyRemaining > 0 ? 'orange' : 'red'}
-                      type='light'
-                      shape='circle'
-                      size='small'
-                    >
-                      周:{weeklyRemaining}/{weeklyLimit}
-                    </Tag>
-                  </Tooltip>
-                )}
+                    {record.type === 57
+                      ? t('帐号信息')
+                      : renderQuotaWithAmount(record.balance)}
+                  </Tag>
+                </Tooltip>
               </Space>
             </div>
           );
         } else {
           return (
-            <Tooltip content={t('已用次数')}>
+            <Tooltip content={t('已用额度')}>
               <Tag color='white' type='ghost' shape='circle'>
-                {renderNumber(record.used_quota || 0)}
+                {renderQuota(record.used_quota)}
               </Tag>
             </Tooltip>
           );
