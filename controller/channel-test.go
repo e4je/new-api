@@ -884,7 +884,6 @@ func TestChannel(c *gin.Context) {
 		return
 	}
 	// 测试调用不计入限额，避免管理员测试时渠道被意外禁用
-	// service.IncrementChannelCallCount(channel.Id)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

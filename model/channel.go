@@ -34,10 +34,9 @@ type Channel struct {
 	ResponseTime       int     `json:"response_time"` // in milliseconds
 	BaseURL            *string `json:"base_url" gorm:"column:base_url;default:''"`
 	Other              string  `json:"other"`
-	Balance            float64  `json:"balance"`              // in USD
-	BalanceUpdatedTime int64    `json:"balance_updated_time" gorm:"bigint"`
-	ManualBalance      *float64 `json:"manual_balance"`       // 手动设置的余额（次数），为空则使用自动查询
-	Models             string   `json:"models"`
+	Balance            float64 `json:"balance"` // in USD
+	BalanceUpdatedTime int64   `json:"balance_updated_time" gorm:"bigint"`
+	Models             string  `json:"models"`
 	Group              string  `json:"group" gorm:"type:varchar(64);default:'default'"`
 	UsedQuota          int64   `json:"used_quota" gorm:"bigint;default:0"`
 	ModelMapping       *string `json:"model_mapping" gorm:"type:text"`
@@ -68,12 +67,6 @@ type ChannelInfo struct {
 	MultiKeyDisabledTime   map[int]int64         `json:"multi_key_disabled_time,omitempty"`   // key禁用时间列表，key index -> time
 	MultiKeyPollingIndex   int                   `json:"multi_key_polling_index"`             // 多Key模式下轮询的key索引
 	MultiKeyMode           constant.MultiKeyMode `json:"multi_key_mode"`
-	// 渠道调用次数限制（滑动窗口 + 固定窗口）
-	HourlyCallTimestamps []int64 `json:"hourly_call_timestamps,omitempty"` // 滑动窗口：每次调用的时间戳列表（最近1小时）
-	DailyCallCount       int     `json:"daily_call_count,omitempty"`       // 当天累计调用次数（每天00:00重置）
-	DailyCallResetTime   int64   `json:"daily_call_reset_time,omitempty"`  // 上次重置天计数的时间戳
-	WeeklyCallCount      int     `json:"weekly_call_count,omitempty"`      // 当周累计调用次数（每周一00:00重置）
-	WeeklyCallResetTime  int64   `json:"weekly_call_reset_time,omitempty"` // 上次重置周计数的时间戳
 }
 
 type ChannelSortOptions struct {

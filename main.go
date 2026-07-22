@@ -115,8 +115,6 @@ func main() {
 		go controller.AutomaticallyUpdateChannels(frequency)
 	}
 
-	go service.CheckChannelCallLimits()
-
 	// Codex credential auto-refresh check every 10 minutes, refresh when expires within 1 day
 	service.StartCodexCredentialAutoRefreshTask()
 
