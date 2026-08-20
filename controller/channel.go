@@ -942,6 +942,10 @@ type ChannelStatusBatchRequest struct {
 	Status int   `json:"status"`
 }
 
+type ChannelUsedQuotaRequest struct {
+	UsedQuota int64 `json:"used_quota"`
+}
+
 func UpdateChannel(c *gin.Context) {
 	channel := PatchChannel{}
 	rawBody, err := c.GetRawData()
@@ -1122,6 +1126,42 @@ func UpdateChannel(c *gin.Context) {
 		"data":    channel,
 	})
 	return
+}
+
+func UpdateChannelUsedQuota(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id <= 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	req := ChannelUsedQuotaRequest{}
+	if err := c.ShouldBindJSON(&req); err != nil || req.UsedQuota < 0 {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+
+	channel, err := model.GetChannelById(id, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if err := model.SetChannelUsedQuota(id, req.UsedQuota); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+
+	recordManageAudit(c, "channel.used_quota_update", map[string]interface{}{
+		"id":   channel.Id,
+		"name": channel.Name,
+		"from": channel.UsedQuota,
+		"to":   req.UsedQuota,
+	})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    req.UsedQuota,
+	})
 }
 
 func UpdateChannelStatus(c *gin.Context) {

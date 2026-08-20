@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { AddMoneyCircleIcon } from '@hugeicons/core-free-icons'
+import { HugeiconsIcon } from '@hugeicons/react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Row } from '@tanstack/react-table'
 import {
@@ -42,6 +44,7 @@ import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
@@ -72,6 +75,7 @@ import { parseUpstreamUpdateMeta } from '../lib/upstream-update-utils'
 import type { Channel } from '../types'
 import { ChannelRowActionsLayoutContext } from './channel-row-actions-context'
 import { useChannels } from './channels-provider'
+import { UsedQuotaDialog } from './dialogs/used-quota-dialog'
 
 interface DataTableRowActionsProps {
   row: Row<Channel>
@@ -85,6 +89,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const queryClient = useQueryClient()
   const currentUser = useAuthStore((s) => s.auth.user)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [usedQuotaDialogOpen, setUsedQuotaDialogOpen] = useState(false)
   const [isTesting, setIsTesting] = useState(false)
   const [isTogglingStatus, setIsTogglingStatus] = useState(false)
 
@@ -94,6 +99,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
     currentUser,
     ADMIN_PERMISSION_RESOURCES.CHANNEL,
     ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
+  )
+  const canEditChannel = hasPermission(
+    currentUser,
+    ADMIN_PERMISSION_RESOURCES.CHANNEL,
+    ADMIN_PERMISSION_ACTIONS.WRITE
   )
 
   const handleEdit = () => {
@@ -264,123 +274,152 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           <span className='sr-only'>{t('Open menu')}</span>
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end' className='w-48'>
-          {layout === 'card' && (
-            <DropdownMenuItem onClick={handleEdit}>
-              {t('Edit')}
+          <DropdownMenuGroup>
+            {layout === 'card' && (
+              <DropdownMenuItem onClick={handleEdit}>
+                {t('Edit')}
+                <DropdownMenuShortcut>
+                  <Pencil size={16} />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
+
+            {/* Test Connection */}
+            <DropdownMenuItem onClick={handleTest}>
+              {t('Test Connection')}
               <DropdownMenuShortcut>
-                <Pencil size={16} />
+                <PlugZap size={16} />
               </DropdownMenuShortcut>
             </DropdownMenuItem>
-          )}
 
-          {/* Test Connection */}
-          <DropdownMenuItem onClick={handleTest}>
-            {t('Test Connection')}
-            <DropdownMenuShortcut>
-              <PlugZap size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
+            {/* Query Balance */}
+            <DropdownMenuItem onClick={handleQueryBalance}>
+              {t('Query Balance')}
+              <DropdownMenuShortcut>
+                <DollarSign size={16} />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
 
-          {/* Query Balance */}
-          <DropdownMenuItem onClick={handleQueryBalance}>
-            {t('Query Balance')}
-            <DropdownMenuShortcut>
-              <DollarSign size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-
-          {/* Fetch Models */}
-          <DropdownMenuItem onClick={handleFetchModels}>
-            {t('Fetch Models')}
-            <DropdownMenuShortcut>
-              <Download size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-
-          {/* Detect Upstream Updates (only for fetchable channel types) */}
-          {MODEL_FETCHABLE_TYPES.has(channel.type) && (
             <DropdownMenuItem
-              onClick={() => {
-                const meta = parseUpstreamUpdateMeta(channel.settings)
-                if (
-                  meta.pendingAddModels.length > 0 ||
-                  meta.pendingRemoveModels.length > 0
-                ) {
-                  upstream.openModal(
-                    channel,
-                    meta.pendingAddModels,
-                    meta.pendingRemoveModels,
-                    meta.pendingAddModels.length > 0 ? 'add' : 'remove'
-                  )
-                } else {
-                  upstream.detectChannelUpdates(channel)
-                }
+              disabled={!canEditChannel}
+              onSelect={(event) => {
+                event.preventDefault()
+                if (canEditChannel) setUsedQuotaDialogOpen(true)
               }}
             >
-              {t('Upstream Updates')}
+              {t('Edit used quota')}
               <DropdownMenuShortcut>
-                <RefreshCw size={16} />
+                <HugeiconsIcon icon={AddMoneyCircleIcon} />
               </DropdownMenuShortcut>
             </DropdownMenuItem>
-          )}
 
-          {/* Ollama Models (only for Ollama channels) */}
-          {channel.type === 4 && (
-            <DropdownMenuItem onClick={handleManageOllamaModels}>
-              {t('Manage Ollama Models')}
+            {/* Fetch Models */}
+            <DropdownMenuItem onClick={handleFetchModels}>
+              {t('Fetch Models')}
               <DropdownMenuShortcut>
-                <Boxes size={16} />
+                <Download size={16} />
               </DropdownMenuShortcut>
             </DropdownMenuItem>
-          )}
+
+            {/* Detect Upstream Updates (only for fetchable channel types) */}
+            {MODEL_FETCHABLE_TYPES.has(channel.type) && (
+              <DropdownMenuItem
+                onClick={() => {
+                  const meta = parseUpstreamUpdateMeta(channel.settings)
+                  if (
+                    meta.pendingAddModels.length > 0 ||
+                    meta.pendingRemoveModels.length > 0
+                  ) {
+                    upstream.openModal(
+                      channel,
+                      meta.pendingAddModels,
+                      meta.pendingRemoveModels,
+                      meta.pendingAddModels.length > 0 ? 'add' : 'remove'
+                    )
+                  } else {
+                    upstream.detectChannelUpdates(channel)
+                  }
+                }}
+              >
+                {t('Upstream Updates')}
+                <DropdownMenuShortcut>
+                  <RefreshCw size={16} />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
+
+            {/* Ollama Models (only for Ollama channels) */}
+            {channel.type === 4 && (
+              <DropdownMenuItem onClick={handleManageOllamaModels}>
+                {t('Manage Ollama Models')}
+                <DropdownMenuShortcut>
+                  <Boxes size={16} />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
 
           <DropdownMenuSeparator />
 
-          {/* Copy Channel */}
-          <DropdownMenuItem
-            disabled={!canEditSensitive}
-            onClick={canEditSensitive ? handleCopy : undefined}
-          >
-            {t('Copy Channel')}
-            <DropdownMenuShortcut>
-              <Copy size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-          {!canEditSensitive && (
-            <DropdownMenuItem disabled className='text-xs normal-case'>
-              {t('No permission to perform this action')}
-            </DropdownMenuItem>
-          )}
-
-          {/* Manage Keys (only for multi-key channels) */}
-          {isMultiKey && (
-            <DropdownMenuItem onClick={handleManageKeys}>
-              {t('Manage Keys')}
+          <DropdownMenuGroup>
+            {/* Copy Channel */}
+            <DropdownMenuItem
+              disabled={!canEditSensitive}
+              onClick={canEditSensitive ? handleCopy : undefined}
+            >
+              {t('Copy Channel')}
               <DropdownMenuShortcut>
-                <Key size={16} />
+                <Copy size={16} />
               </DropdownMenuShortcut>
             </DropdownMenuItem>
-          )}
+            {!canEditSensitive && (
+              <DropdownMenuItem disabled className='text-xs normal-case'>
+                {t('No permission to perform this action')}
+              </DropdownMenuItem>
+            )}
+
+            {/* Manage Keys (only for multi-key channels) */}
+            {isMultiKey && (
+              <DropdownMenuItem onClick={handleManageKeys}>
+                {t('Manage Keys')}
+                <DropdownMenuShortcut>
+                  <Key size={16} />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuGroup>
 
           <DropdownMenuSeparator />
 
-          {/* Delete */}
-          <DropdownMenuItem
-            disabled={!canEditSensitive}
-            onSelect={(e) => {
-              e.preventDefault()
-              if (!canEditSensitive) return
-              setDeleteConfirmOpen(true)
-            }}
-            className='text-destructive focus:text-destructive'
-          >
-            {t('Delete')}
-            <DropdownMenuShortcut>
-              <Trash2 size={16} />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
+          <DropdownMenuGroup>
+            {/* Delete */}
+            <DropdownMenuItem
+              disabled={!canEditSensitive}
+              onSelect={(e) => {
+                e.preventDefault()
+                if (!canEditSensitive) return
+                setDeleteConfirmOpen(true)
+              }}
+              className='text-destructive focus:text-destructive'
+            >
+              {t('Delete')}
+              <DropdownMenuShortcut>
+                <Trash2 size={16} />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {usedQuotaDialogOpen && (
+        <UsedQuotaDialog
+          open={usedQuotaDialogOpen}
+          onOpenChange={setUsedQuotaDialogOpen}
+          channelId={channel.id}
+          channelName={channel.name}
+          currentUsedQuota={channel.used_quota}
+        />
+      )}
 
       <ConfirmDialog
         open={deleteConfirmOpen}

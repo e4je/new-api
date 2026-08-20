@@ -151,6 +151,28 @@ func TestUpdateChannelRejectsStatusField(t *testing.T) {
 	assert.False(t, response.Success)
 }
 
+func TestUpdateChannelUsedQuotaRejectsNegativeValue(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Params = gin.Params{{Key: "id", Value: "1"}}
+	ctx.Request = httptest.NewRequest(
+		http.MethodPut,
+		"/api/channel/1/used_quota",
+		bytes.NewBufferString(`{"used_quota":-1}`),
+	)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	UpdateChannelUsedQuota(ctx)
+
+	require.Equal(t, http.StatusOK, recorder.Code)
+	var response struct {
+		Success bool `json:"success"`
+	}
+	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &response))
+	assert.False(t, response.Success)
+}
+
 func TestChannelStatusValidation(t *testing.T) {
 	assert.True(t, isManageableChannelStatus(common.ChannelStatusEnabled))
 	assert.True(t, isManageableChannelStatus(common.ChannelStatusManuallyDisabled))

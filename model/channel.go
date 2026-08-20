@@ -907,6 +907,38 @@ func UpdateChannelUsedQuota(id int, quota int) {
 	updateChannelUsedQuota(id, quota)
 }
 
+// SetChannelUsedQuota replaces a channel's accumulated usage. Pending batched
+// deltas recorded before the override are discarded, while deltas recorded
+// after it remain queued for the next flush.
+func SetChannelUsedQuota(id int, quota int64) error {
+	if id <= 0 || quota < 0 {
+		return errors.New("invalid channel used quota")
+	}
+
+	batchUpdateExecutionLock.Lock()
+	defer batchUpdateExecutionLock.Unlock()
+
+	batchUpdateLocks[BatchUpdateTypeChannelUsedQuota].Lock()
+	defer batchUpdateLocks[BatchUpdateTypeChannelUsedQuota].Unlock()
+
+	result := DB.Model(&Channel{}).Where("id = ?", id).Update("used_quota", quota)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		var count int64
+		if err := DB.Model(&Channel{}).Where("id = ?", id).Count(&count).Error; err != nil {
+			return err
+		}
+		if count == 0 {
+			return gorm.ErrRecordNotFound
+		}
+	}
+
+	delete(batchUpdateStores[BatchUpdateTypeChannelUsedQuota], id)
+	return nil
+}
+
 func updateChannelUsedQuota(id int, quota int) {
 	err := DB.Model(&Channel{}).Where("id = ?", id).Update("used_quota", gorm.Expr("used_quota + ?", quota)).Error
 	if err != nil {

@@ -5341,6 +5341,9 @@
     "Zero retention": "零数据保留",
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "Edit used quota": "编辑已使用用量",
+    "Change the accumulated usage for \"{{name}}\". Usage logs are not affected.": "修改渠道“{{name}}”的累计用量。使用日志不会受到影响。",
+    "Changed used quota for channel {{name}} (ID: {{id}}) from {{from}} to {{to}}": "已将渠道 {{name}}（ID：{{id}}）的已使用用量从 {{from}} 修改为 {{to}}"
   }
 }

@@ -140,6 +140,21 @@ export async function updateChannel(
 }
 
 /**
+ * Replace a channel's accumulated used quota.
+ */
+export async function updateChannelUsedQuota(
+  id: number,
+  usedQuota: number
+): Promise<{ success: boolean; message?: string; data?: number }> {
+  const res = await api.put(
+    `/api/channel/${id}/used_quota`,
+    { used_quota: usedQuota },
+    channelActionConfig()
+  )
+  return res.data
+}
+
+/**
  * Update channel enabled/disabled status.
  */
 export async function updateChannelStatus(

@@ -5341,6 +5341,9 @@
     "Zero retention": "データ保持なし",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "Edit used quota": "使用済みクォータを編集",
+    "Change the accumulated usage for \"{{name}}\". Usage logs are not affected.": "チャネル「{{name}}」の累積使用量を変更します。使用ログには影響しません。",
+    "Changed used quota for channel {{name}} (ID: {{id}}) from {{from}} to {{to}}": "チャネル {{name}}（ID: {{id}}）の使用済みクォータを {{from}} から {{to}} に変更しました"
   }
 }

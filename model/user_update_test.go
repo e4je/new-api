@@ -144,6 +144,41 @@ func TestUsageAccountingSupportsSignedDirectAndBatchDeltas(t *testing.T) {
 	assert.Equal(t, int64(1150), gotChannel.UsedQuota)
 }
 
+func TestSetChannelUsedQuotaReplacesStoredAndQueuedUsage(t *testing.T) {
+	setupChannelStatusTest(t)
+	resetBatchUpdateTestState(t)
+
+	channel := Channel{
+		Name:      "manual-usage-channel",
+		Key:       "sk-test",
+		Status:    common.ChannelStatusEnabled,
+		UsedQuota: 1000,
+	}
+	require.NoError(t, DB.Create(&channel).Error)
+
+	common.BatchUpdateEnabled = true
+	UpdateChannelUsedQuota(channel.Id, 400)
+
+	require.NoError(t, SetChannelUsedQuota(channel.Id, 25))
+	batchUpdate()
+
+	var stored Channel
+	require.NoError(t, DB.Select("used_quota").First(&stored, channel.Id).Error)
+	assert.Equal(t, int64(25), stored.UsedQuota, "usage queued before the manual override must be discarded")
+
+	UpdateChannelUsedQuota(channel.Id, 10)
+	batchUpdate()
+	require.NoError(t, DB.Select("used_quota").First(&stored, channel.Id).Error)
+	assert.Equal(t, int64(35), stored.UsedQuota, "usage recorded after the manual override must be retained")
+}
+
+func TestSetChannelUsedQuotaRejectsMissingChannel(t *testing.T) {
+	setupChannelStatusTest(t)
+	resetBatchUpdateTestState(t)
+
+	require.ErrorIs(t, SetChannelUsedQuota(99999, 0), gorm.ErrRecordNotFound)
+}
+
 func TestUpdateUserAccessTokenOnlyUpdatesAccessToken(t *testing.T) {
 	setupUserUpdateTestState(t)
 
