@@ -21,6 +21,10 @@ import axios from 'axios'
 import { api, refreshAuthentication, type RefreshOutcome } from '@/lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 
+import {
+  clearPasswordEncryptionCache,
+  encryptPassword,
+} from './lib/password-encryption'
 import { getAffiliateCode } from './lib/storage'
 import type { TelegramAuthorization } from './lib/telegram-login'
 import type {
@@ -41,23 +45,45 @@ import type {
 // ----------------------------------------------------------------------------
 
 // User login with username and password
-export async function login(payload: LoginPayload) {
+export async function login(payload: LoginPayload): Promise<LoginResponse> {
   const turnstile = payload.turnstile ?? ''
-  const res = await api.post<LoginResponse>(
-    `/api/user/login?turnstile=${turnstile}`,
-    {
-      username: payload.username,
-      password: payload.password,
-    },
-    {
-      headers: payload.aliyunCaptchaVerifyParam
-        ? { 'captcha-verify-param': payload.aliyunCaptchaVerifyParam }
-        : undefined,
-      skipBusinessError: true,
-      skipAuthRefresh: true,
+  try {
+    let passwordFields:
+      | { password: string }
+      | { password_encrypted: string; encryption_key_id: string }
+    if (payload.passwordEncryptionEnabled) {
+      const encryptedPassword = await encryptPassword(payload.password)
+      passwordFields = {
+        password_encrypted: encryptedPassword.password_encrypted,
+        encryption_key_id: encryptedPassword.encryption_key_id,
+      }
+    } else {
+      passwordFields = { password: payload.password }
     }
-  )
-  return res.data
+    const res = await api.post<LoginResponse>(
+      `/api/user/login?turnstile=${turnstile}`,
+      {
+        username: payload.username,
+        ...passwordFields,
+      },
+      {
+        headers: payload.aliyunCaptchaVerifyParam
+          ? { 'captcha-verify-param': payload.aliyunCaptchaVerifyParam }
+          : undefined,
+        skipBusinessError: true,
+        skipAuthRefresh: true,
+      }
+    )
+    if (payload.passwordEncryptionEnabled && !res.data?.success) {
+      clearPasswordEncryptionCache()
+    }
+    return res.data
+  } catch (error: unknown) {
+    if (payload.passwordEncryptionEnabled) {
+      clearPasswordEncryptionCache()
+    }
+    throw error
+  }
 }
 
 // Two-factor authentication login

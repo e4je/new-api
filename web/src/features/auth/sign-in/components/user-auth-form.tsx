@@ -85,6 +85,10 @@ export function UserAuthForm({
     (status?.password_login_enabled ??
       status?.data?.password_login_enabled ??
       true) !== false
+  const passwordLoginEncryptionEnabled =
+    (status?.password_login_encryption_enabled ??
+      status?.data?.password_login_encryption_enabled ??
+      false) === true
   const {
     isTurnstileEnabled,
     turnstileSiteKey,
@@ -168,6 +172,7 @@ export function UserAuthForm({
         turnstile: submittedTurnstileToken,
         aliyunCaptchaVerifyParam,
         requireAliyunCaptcha: aliyunCaptcha.enabled,
+        passwordEncryptionEnabled: passwordLoginEncryptionEnabled,
       })
 
       if (res.success) {
