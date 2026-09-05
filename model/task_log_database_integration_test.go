@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/setting/model_setting"
 	"github.com/glebarez/sqlite"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -21,8 +23,8 @@ import (
 // Run against disposable databases with TEST_MYSQL_DSN/TEST_POSTGRES_DSN.
 // Optional TEST_MYSQL_LOG_DSN/TEST_POSTGRES_LOG_DSN select a separate log
 // database; otherwise logs still use their own connection and isolated tables.
-// Do not parallelize: production Task and Log methods use package-level DBs.
-func TestTaskLogDatabaseIntegration(t *testing.T) {
+// Do not parallelize: production routing, Task and Log methods use package-level DBs.
+func TestRoutingTaskLogDatabaseIntegration(t *testing.T) {
 	for _, backend := range []struct {
 		name   string
 		dbType common.DatabaseType
@@ -57,6 +59,8 @@ func TestTaskLogDatabaseIntegration(t *testing.T) {
 				name  string
 			}{
 				{db: mainDB, model: &Task{}, name: prefix + "main_tasks"},
+				{db: mainDB, model: &Channel{}, name: prefix + "main_channels"},
+				{db: mainDB, model: &Ability{}, name: prefix + "main_abilities"},
 				{db: logDB, model: &Log{}, name: prefix + "log_logs"},
 			} {
 				require.False(t, table.db.Migrator().HasTable(table.name), "refusing to reuse an existing table")
@@ -77,9 +81,84 @@ func TestTaskLogDatabaseIntegration(t *testing.T) {
 				initCol()
 			})
 
+			t.Run("channel_model_routing", testChannelModelRouting)
 			t.Run("private_data_roundtrip", testTaskPrivateDataDatabaseRoundtrip)
 			t.Run("private_state_updates_and_cas", testTaskPrivateStateDatabaseUpdates)
 			t.Run("separate_log_connection_visibility", testLogOtherDatabaseVisibility)
+		})
+	}
+}
+
+func testChannelModelRouting(t *testing.T) {
+	settings := model_setting.GetGlobalSettings()
+	originalSettings, originalMemoryCache := *settings, common.MemoryCacheEnabled
+	originalGroups, originalChannels := group2model2channels, channelsIDM
+	originalAdvancedConfig, originalAliases := channel2advancedCustomConfig, taskAliasViewPtr.Load()
+	t.Cleanup(func() {
+		*settings, common.MemoryCacheEnabled = originalSettings, originalMemoryCache
+		channelSyncLock.Lock()
+		group2model2channels, channelsIDM = originalGroups, originalChannels
+		channel2advancedCustomConfig = originalAdvancedConfig
+		channelSyncLock.Unlock()
+		taskAliasViewPtr.Store(originalAliases)
+		InvalidatePricingCache()
+	})
+	settings.ThinkingModelBlacklist = []string{`re:.*@sha256:.*`}
+	settings.EffortTailModelIDs = nil
+
+	primaryPriority, backupPriority, exactPriority, disabledPriority := int64(4), int64(3), int64(0), int64(9)
+	channels := []Channel{
+		{Name: "primary", Models: "gpt-6-astra", Priority: &primaryPriority},
+		{Name: "backup", Models: "gpt-6-astra", Priority: &backupPriority},
+		{Name: "exact", Models: "gpt-6-astra@effort:high", Priority: &exactPriority},
+		{Name: "disabled", Models: "gpt-6-astra", Priority: &disabledPriority, Status: common.ChannelStatusAutoDisabled},
+		{Name: "literal", Models: "vendor/model@sha256:abc", Priority: &primaryPriority},
+		{Name: "literal-base", Models: "vendor/model", Priority: &primaryPriority},
+	}
+	for i := range channels {
+		channels[i].Type = constant.ChannelTypeOpenAI
+		channels[i].Group = "default"
+		if channels[i].Status == 0 {
+			channels[i].Status = common.ChannelStatusEnabled
+		}
+		require.NoError(t, channels[i].Insert())
+	}
+
+	for _, path := range []struct {
+		name  string
+		cache bool
+	}{{name: "database"}, {name: "memory_cache", cache: true}} {
+		t.Run(path.name, func(t *testing.T) {
+			common.MemoryCacheEnabled = path.cache
+			if path.cache {
+				InitChannelCache()
+			}
+			for _, tc := range []struct {
+				name, group, model, want string
+				retry                    int
+			}{
+				{name: "modifier falls back to base", group: "default", model: "gpt-6-astra@effort:max", want: "primary"},
+				{name: "retry advances priority", group: "default", model: "gpt-6-astra@effort:max", want: "backup", retry: 1},
+				{name: "exact model wins over base", group: "default", model: "gpt-6-astra@effort:high", want: "exact"},
+				{name: "sampling control uses base", group: "default", model: "gpt-6-astra@temperature:0", want: "primary"},
+				{name: "group boundary is preserved", group: "other", model: "gpt-6-astra@effort:max"},
+				{name: "exempt literal model is preserved", group: "default", model: "vendor/model@sha256:abc", want: "literal"},
+				{name: "exempt model cannot fall back", group: "default", model: "vendor/model@sha256:def"},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					selected, err := GetRandomSatisfiedChannel(tc.group, tc.model, tc.retry, nil)
+					require.NoError(t, err)
+					if tc.want == "" {
+						assert.Nil(t, selected)
+						assert.False(t, IsChannelEnabledForGroupModel(tc.group, tc.model, channels[0].Id))
+						return
+					}
+					require.NotNil(t, selected)
+					assert.Equal(t, tc.want, selected.Name)
+					assert.True(t, IsChannelEnabledForGroupModel(tc.group, tc.model, selected.Id))
+				})
+			}
+			assert.False(t, IsChannelEnabledForGroupModel("default", "gpt-6-astra@effort:max", channels[3].Id), "disabled channels must remain ineligible")
 		})
 	}
 }
