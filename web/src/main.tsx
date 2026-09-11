@@ -43,7 +43,9 @@ import './styles/index.css'
 initializeFrontendCache()
 installBuildMetadata()
 
-const queryClient = createAppQueryClient()
+const queryClient = createAppQueryClient(() => {
+  void router.navigate({ to: '/500' })
+})
 
 // Create a new router instance
 const router = createRouter({

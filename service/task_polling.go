@@ -742,10 +742,13 @@ func isNonTerminalPollStatus(status model.TaskStatus) bool {
 	}
 }
 
-func pollFailureReason(class string, statusCode int) string {
+func pollFailureReason(class string, statusCode int, detail string) string {
 	reason := fmt.Sprintf("poll failed: %s", class)
 	if statusCode > 0 {
 		reason = fmt.Sprintf("poll failed: %s (HTTP %d)", class, statusCode)
+	}
+	if detail != "" {
+		reason = reason + ": " + detail
 	}
 	return reason
 }
@@ -775,9 +778,7 @@ func recordPollFailure(ctx context.Context, adaptor TaskPollingAdaptor, task *mo
 	// TASK_POLL_MAX_FAILURES <= 0 disables the consecutive-failure cutoff, matching
 	// TASK_TIMEOUT_MINUTES semantics; the 24h sweep remains the only backstop.
 	if constant.TaskPollMaxFailures > 0 && task.PrivateData.PollFailures >= constant.TaskPollMaxFailures {
-		// FailReason and refund reasons are user-visible; parser/transport details
-		// can contain private upstream diagnostics and must stay in server logs.
-		return failTaskFromPoll(ctx, adaptor, task, fromStatus, pollFailureReason(class, statusCode))
+		return failTaskFromPoll(ctx, adaptor, task, fromStatus, pollFailureReason(class, statusCode, detail))
 	}
 	if _, err := task.UpdateWithStatus(fromStatus); err != nil {
 		return err

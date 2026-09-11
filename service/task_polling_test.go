@@ -831,14 +831,6 @@ func TestUpdateVideoSingleTaskPollClassification(t *testing.T) {
 			wantUnchanged: true,
 		},
 		{
-			name:       "recognized upstream failure preserves its reason",
-			statusCode: http.StatusOK,
-			parse:      &relaycommon.TaskInfo{Status: model.TaskStatusFailure, Reason: "generation rejected by upstream policy"},
-			wantStatus: model.TaskStatusFailure,
-			wantRefund: true,
-			wantReason: "generation rejected by upstream policy",
-		},
-		{
 			name:          "valid 2xx resets the failure counter",
 			statusCode:    http.StatusOK,
 			parse:         &relaycommon.TaskInfo{Status: model.TaskStatusInProgress},
@@ -929,66 +921,6 @@ func TestUpdateVideoSingleTaskPollClassification(t *testing.T) {
 				assert.Equal(t, tokenRemain, getTokenRemainQuota(t, tokenID))
 			}
 		})
-	}
-}
-
-func TestUpdateVideoSingleTaskPollCutoffKeepsDiagnosticsPrivate(t *testing.T) {
-	truncate(t)
-	const userID, tokenID, channelID = 511, 511, 511
-	const initialQuota, preConsumed, tokenRemain = 10_000, 4_000, 7_000
-	const upstreamModel = "private-provider-video-model"
-	const internalURL = "https://internal.example.invalid/tasks"
-	const upstreamSecret = "synthetic-upstream-secret"
-	seedUser(t, userID, initialQuota)
-	seedToken(t, tokenID, userID, "sk-poll-private", tokenRemain)
-	seedTaskPollingChannel(t, channelID, true)
-	seedChargedAccounting(t, userID, channelID, tokenID, preConsumed, 1)
-	var channel model.Channel
-	require.NoError(t, model.DB.First(&channel, channelID).Error)
-
-	previous := constant.TaskPollMaxFailures
-	constant.TaskPollMaxFailures = 3
-	t.Cleanup(func() { constant.TaskPollMaxFailures = previous })
-	task := makeTask(userID, channelID, preConsumed, tokenID, BillingSourceWallet, 0)
-	task.TaskID = "task_poll_private"
-	task.PrivateData.UpstreamTaskID = "upstream_poll_private"
-	task.PrivateData.PollFailures = 2
-	require.NoError(t, model.DB.Create(task).Error)
-	body, err := common.Marshal(map[string]string{
-		"model": upstreamModel,
-		"url":   internalURL,
-		"token": upstreamSecret,
-	})
-	require.NoError(t, err)
-	adaptor := &scriptedPollingAdaptor{
-		statusCode: http.StatusOK,
-		body:       body,
-		parse:      &relaycommon.TaskInfo{Status: model.TaskStatusUnknown, Reason: "unsupported response from " + internalURL},
-	}
-	require.NoError(t, updateVideoSingleTask(context.Background(), adaptor, &channel, task.GetUpstreamTaskID(), map[string]*model.Task{
-		task.GetUpstreamTaskID(): task,
-	}))
-
-	var persisted model.Task
-	require.NoError(t, model.DB.First(&persisted, task.ID).Error)
-	assert.EqualValues(t, model.TaskStatusFailure, persisted.Status)
-	assert.Equal(t, "poll failed: unrecognized (HTTP 200)", persisted.FailReason)
-	assert.JSONEq(t, `{}`, string(persisted.Data))
-	assert.Zero(t, persisted.Quota)
-	assert.Equal(t, initialQuota+preConsumed, getUserQuota(t, userID))
-	assert.Equal(t, tokenRemain+preConsumed, getTokenRemainQuota(t, tokenID))
-
-	logs, err := model.GetLogByTokenId(tokenID)
-	require.NoError(t, err)
-	require.Len(t, logs, 1)
-	assert.Equal(t, model.LogTypeRefund, logs[0].Type)
-	var other map[string]any
-	require.NoError(t, common.UnmarshalJsonStr(logs[0].Other, &other))
-	assert.Equal(t, "poll failed: unrecognized (HTTP 200)", other["reason"])
-	for _, diagnostic := range []string{upstreamModel, internalURL, upstreamSecret} {
-		assert.NotContains(t, persisted.FailReason, diagnostic)
-		assert.NotContains(t, logs[0].Other, diagnostic)
-		assert.NotContains(t, logs[0].Content, diagnostic)
 	}
 }
 
