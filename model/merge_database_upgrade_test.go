@@ -124,6 +124,9 @@ func TestReleaseDatabaseUpgrade(t *testing.T) {
 					require.NoError(t, DB.Create(&Channel{Name: "merge_fixture", Models: "fixture-model", Group: "default", UsedQuota: 12345}).Error)
 					require.NoError(t, DB.Create(&Token{Key: strings.Repeat("x", 32), Name: "merge_fixture", RemainQuota: 12345}).Error)
 					require.NoError(t, DB.Create(&Option{Key: "MergeFixture", Value: "中文-preserved"}).Error)
+					require.NoError(t, DB.Create(&PasskeyCredential{UserID: 900001, CredentialID: "merge-unknown-rp", PublicKey: "synthetic-public-key", SignCount: 7}).Error)
+					rpID := "example.com"
+					require.NoError(t, DB.Create(&PasskeyCredential{UserID: 900002, RPID: &rpID, CredentialID: "merge-bound-rp", PublicKey: "synthetic-public-key", SignCount: 9}).Error)
 					require.NoError(t, DB.Create(&SystemTask{TaskID: "merge_fixture", Type: "channel_test", Status: SystemTaskStatusSucceeded, State: "{\"done\":1}"}).Error)
 					require.NoError(t, LOG_DB.Create(&Log{Username: "merge_fixture", Content: "preserved usage", Quota: 12345}).Error)
 					require.NoError(t, LOG_DB.Create(&AuditLog{EventId: "merge_fixture", Username: "merge_fixture", ActorRole: common.RoleRootUser, Content: "preserved audit"}).Error)
@@ -141,6 +144,17 @@ func TestReleaseDatabaseUpgrade(t *testing.T) {
 				var option Option
 				require.NoError(t, DB.Where(commonKeyCol+" = ?", "MergeFixture").First(&option).Error)
 				assert.Equal(t, "中文-preserved", option.Value)
+				var unknown, bound PasskeyCredential
+				require.NoError(t, DB.Where("user_id = ?", 900001).First(&unknown).Error)
+				require.NoError(t, DB.Where("user_id = ?", 900002).First(&bound).Error)
+				assert.Nil(t, unknown.RPID)
+				assert.EqualValues(t, 7, unknown.SignCount)
+				require.NotNil(t, bound.RPID)
+				assert.Equal(t, "example.com", *bound.RPID)
+				assert.EqualValues(t, 9, bound.SignCount)
+				assert.Equal(t, "synthetic-public-key", bound.PublicKey)
+				assert.Error(t, DB.Create(&PasskeyCredential{UserID: 900003, CredentialID: bound.CredentialID, PublicKey: "duplicate"}).Error)
+				assert.Error(t, DB.Create(&PasskeyCredential{UserID: bound.UserID, CredentialID: "duplicate-user", PublicKey: "duplicate"}).Error)
 				var task SystemTask
 				require.NoError(t, DB.Where("task_id = ?", "merge_fixture").First(&task).Error)
 				assert.Equal(t, "{\"done\":1}", task.State)
