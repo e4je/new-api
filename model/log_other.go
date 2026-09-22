@@ -227,8 +227,9 @@ func formatLogOtherJSON(value string, visibility logOtherVisibility) string {
 
 	changed := false
 	if visibility == logOtherVisibilityUser {
-		// Keep the stored upstream model available to admins, but not log owners.
-		for _, key := range []string{logOtherAdminInfoKey, logOtherRootInfoKey, logOtherAuditInfoKey, "upstream_model_name"} {
+		// Keep upstream model names and response diagnostics available to admins,
+		// but not log owners, including the nested upstream/returned model names.
+		for _, key := range []string{logOtherAdminInfoKey, logOtherRootInfoKey, logOtherAuditInfoKey, "upstream_model_name", "response_model"} {
 			if _, exists := values[key]; exists {
 				delete(values, key)
 				changed = true

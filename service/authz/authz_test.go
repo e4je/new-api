@@ -1,6 +1,7 @@
 package authz
 
 import (
+	"os"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -8,6 +9,8 @@ import (
 	"github.com/glebarez/sqlite"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gorm.io/driver/mysql"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -18,11 +21,34 @@ func newAuthzTestDB(t *testing.T) *gorm.DB {
 	t.Cleanup(func() {
 		common.IsMasterNode = wasMaster
 	})
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	var driver gorm.Dialector = sqlite.Open(":memory:")
+	dialect := os.Getenv("TEST_AUTHZ_DIALECT")
+	if dialect != "" && dialect != "sqlite" {
+		require.Equal(t, "isolated-local-test", os.Getenv("MERGE_DB_CONFIRM"))
+		switch dialect {
+		case "mysql":
+			dsn := os.Getenv("TEST_MYSQL_DSN")
+			require.NotEmpty(t, dsn)
+			driver = mysql.Open(dsn)
+		case "postgres":
+			dsn := os.Getenv("TEST_POSTGRES_DSN")
+			require.NotEmpty(t, dsn)
+			driver = postgres.Open(dsn)
+		default:
+			t.Fatalf("unsupported test dialect: %s", dialect)
+		}
+	}
+	db, err := gorm.Open(driver, &gorm.Config{})
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	sqlDB.SetMaxOpenConns(1)
+	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
+	require.False(t, db.Migrator().HasTable(&model.CasbinRule{}), "requires an empty isolated authorization database")
+	require.False(t, db.Migrator().HasTable(&model.AuthzRole{}), "requires an empty isolated authorization database")
+	t.Cleanup(func() {
+		require.NoError(t, db.Migrator().DropTable(&model.CasbinRule{}, &model.AuthzRole{}))
+	})
 	require.NoError(t, db.AutoMigrate(&model.CasbinRule{}, &model.AuthzRole{}))
 	return db
 }
@@ -75,6 +101,55 @@ func TestInitOnSlaveOnlyLoadsPolicies(t *testing.T) {
 	require.NoError(t, db.Model(&model.CasbinRule{}).Count(&policyCount).Error)
 	assert.Equal(t, int64(0), policyCount)
 	assert.False(t, Can(2, common.RoleAdminUser, ChannelRead))
+}
+
+func TestLegacyScopedPoliciesDoNotExpandPermissions(t *testing.T) {
+	for _, master := range []bool{true, false} {
+		name := "master"
+		if !master {
+			name = "slave"
+		}
+		t.Run(name, func(t *testing.T) {
+			db := newAuthzTestDB(t)
+			common.IsMasterNode = master
+			rules := []model.CasbinRule{
+				{Ptype: "p", V0: "role:vendor", V1: "channel", V2: "read", V3: "allow", V4: "own"},
+				{Ptype: "p", V0: UserSubject(42), V1: "channel", V2: "read", V3: "allow", V4: "own"},
+				{Ptype: "p", V0: UserSubject(43), V1: "channel", V2: "sensitive_write", V3: "allow", V4: "all"},
+				{Ptype: "p", V0: UserSubject(44), V1: "channel", V2: "secret_view", V3: "deny", V4: "all"},
+				{Ptype: "p", V0: UserSubject(45), V1: "channel", V2: "read"},
+				{Ptype: "p", V0: UserSubject(46), V1: "channel", V2: "read", V3: "allow", V4: "unknown-scope"},
+				{Ptype: "p", V0: UserSubject(47), V1: "channel", V2: "read", V3: "allow", V5: "own"},
+				{Ptype: "p", V0: UserSubject(48), V1: "channel", V2: "read", V3: "allow", V4: "own"},
+				{Ptype: "p", V0: UserSubject(48), V1: "channel", V2: "read", V3: "allow", V4: "all"},
+				{Ptype: "p", V0: RoleSubject(BuiltInRoleAdmin), V1: "channel", V2: "operate", V3: "allow", V4: "own"},
+				{Ptype: "p", V0: UserSubject(50), V1: "channel", V2: "sensitive_write", V3: "allow"},
+				{Ptype: "g", V0: UserSubject(99), V1: RoleSubject(BuiltInRoleAdmin)},
+			}
+			require.NoError(t, db.Create(&rules).Error)
+			ids := make([]uint, len(rules))
+			for i := range rules {
+				ids[i] = rules[i].Id
+			}
+			for range 2 {
+				require.NoError(t, Init(db))
+				require.NoError(t, ReloadPolicy())
+				assert.False(t, Can(42, common.RoleAdminUser, ChannelRead), "own must not fall back to the admin allow baseline")
+				assert.True(t, Can(43, common.RoleAdminUser, ChannelSensitiveWrite))
+				assert.False(t, Can(44, common.RoleAdminUser, ChannelSecretView))
+				assert.True(t, Can(45, common.RoleAdminUser, ChannelRead))
+				for _, userID := range []int{46, 47, 48} {
+					assert.False(t, Can(userID, common.RoleAdminUser, ChannelRead))
+				}
+				assert.False(t, Can(51, common.RoleAdminUser, ChannelOperate), "reseed must not erase a scoped role restriction")
+				assert.True(t, Can(50, common.RoleAdminUser, ChannelSensitiveWrite))
+				assert.False(t, Can(99, common.RoleCommonUser, ChannelRead))
+				var stored []model.CasbinRule
+				require.NoError(t, db.Where("id IN ?", ids).Order("id").Find(&stored).Error)
+				assert.Equal(t, rules, stored, "legacy rows must remain available for administrator review")
+			}
+		})
+	}
 }
 
 func TestSetUserPermissionsStoresOnlyOverrides(t *testing.T) {

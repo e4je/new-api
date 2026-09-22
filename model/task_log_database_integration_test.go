@@ -301,6 +301,12 @@ func testLogOtherDatabaseVisibility(t *testing.T) {
 	other := NewLogOther()
 	require.True(t, other.SetPublic("request_path", "/v1/responses"))
 	require.True(t, other.SetPublic("upstream_model_name", "private-model"))
+	require.True(t, other.SetPublic("response_model", map[string]any{
+		"requested_model": "public-model",
+		"upstream_model":  "private-model",
+		"returned_model":  "private-returned-model",
+		"mismatch":        true,
+	}))
 	require.True(t, other.SetPublic("counter", uint64(9007199254740993)))
 	require.True(t, other.SetAdmin("reject_reason", "fixture-reject"))
 	require.True(t, other.SetAudit("method", "POST"))
@@ -315,7 +321,7 @@ func testLogOtherDatabaseVisibility(t *testing.T) {
 		{
 			name: "scoped", stored: other.JSONString(),
 			user:  `{"request_path":"/v1/responses","counter":9007199254740993}`,
-			admin: `{"request_path":"/v1/responses","counter":9007199254740993,"upstream_model_name":"private-model","admin_info":{"reject_reason":"fixture-reject"},"audit_info":{"method":"POST"}}`,
+			admin: `{"request_path":"/v1/responses","counter":9007199254740993,"upstream_model_name":"private-model","response_model":{"requested_model":"public-model","upstream_model":"private-model","returned_model":"private-returned-model","mismatch":true},"admin_info":{"reject_reason":"fixture-reject"},"audit_info":{"method":"POST"}}`,
 			root:  other.JSONString(),
 		},
 		{
