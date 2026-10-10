@@ -167,10 +167,12 @@ func TestUpdateChannelUsedQuotaRejectsNegativeValue(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, recorder.Code)
 	var response struct {
-		Success bool `json:"success"`
+		Success    bool   `json:"success"`
+		MessageKey string `json:"message_key"`
 	}
 	require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &response))
 	assert.False(t, response.Success)
+	assert.Equal(t, "Invalid parameters", response.MessageKey)
 }
 
 func TestChannelStatusValidation(t *testing.T) {

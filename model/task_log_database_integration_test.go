@@ -298,6 +298,10 @@ func testTaskPrivateStateDatabaseUpdates(t *testing.T) {
 }
 
 func testLogOtherDatabaseVisibility(t *testing.T) {
+	structured := NewLogOther()
+	content := structured.setContent([]*common.Message{common.NewMessage("Upstream returned no usage")})
+	assert.Equal(t, "Upstream returned no usage", content)
+	assert.JSONEq(t, `{"content_parts":[{"key":"Upstream returned no usage"}]}`, structured.JSONString())
 	other := NewLogOther()
 	require.True(t, other.SetPublic("request_path", "/v1/responses"))
 	require.True(t, other.SetPublic("upstream_model_name", "private-model"))
@@ -312,12 +316,17 @@ func testLogOtherDatabaseVisibility(t *testing.T) {
 	require.True(t, other.SetAudit("method", "POST"))
 	require.True(t, other.SetRoot("upstream_request_id", "fixture-root"))
 	for _, test := range []struct {
-		name   string
-		stored string
-		user   string
-		admin  string
-		root   string
+		name    string
+		content string
+		stored  string
+		user    string
+		admin   string
+		root    string
 	}{
+		{
+			name: "structured_content", content: content, stored: structured.JSONString(),
+			user: structured.JSONString(), admin: structured.JSONString(), root: structured.JSONString(),
+		},
 		{
 			name: "scoped", stored: other.JSONString(),
 			user:  `{"request_path":"/v1/responses","counter":9007199254740993}`,
@@ -333,7 +342,7 @@ func testLogOtherDatabaseVisibility(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			stored := &Log{UserId: 19, Type: LogTypeConsume, Other: test.stored}
+			stored := &Log{UserId: 19, Type: LogTypeConsume, Content: test.content, Other: test.stored}
 			require.NoError(t, createLog(stored))
 			for _, role := range []struct {
 				name string
@@ -355,6 +364,7 @@ func testLogOtherDatabaseVisibility(t *testing.T) {
 						FormatRootLogs([]*Log{&loaded})
 					}
 					assert.JSONEq(t, role.want, loaded.Other)
+					assert.Equal(t, test.content, loaded.Content)
 					if test.name == "scoped" {
 						var fields map[string]json.RawMessage
 						require.NoError(t, common.UnmarshalJsonStr(loaded.Other, &fields))
