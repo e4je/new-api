@@ -141,6 +141,28 @@ func TestReleaseDatabaseUpgrade(t *testing.T) {
 				var token Token
 				require.NoError(t, DB.Where("name = ?", "merge_fixture").First(&token).Error)
 				assert.EqualValues(t, 12345, token.RemainQuota)
+				assert.False(t, token.AllowUserQuotaQuery, "existing tokens must not gain quota-query permission")
+				for _, allowed := range []bool{true, false} {
+					token.AllowUserQuotaQuery = allowed
+					require.NoError(t, token.Update())
+					var reloaded Token
+					require.NoError(t, DB.First(&reloaded, token.Id).Error)
+					assert.Equal(t, allowed, reloaded.AllowUserQuotaQuery)
+				}
+				if pass == 0 {
+					require.NoError(t, DB.Create(&[]PerfMetric{
+						{ModelName: "merge_fixture", Group: "default", BucketTs: 3600, RequestCount: 2, SuccessCount: 1},
+						{ModelName: "merge_fixture", Group: "default", BucketTs: 3660, RequestCount: 3, SuccessCount: 2},
+						{ModelName: "merge_fixture", Group: "other", BucketTs: 7200, RequestCount: 9, SuccessCount: 9},
+						{ModelName: "merge_fixture", Group: "default", BucketTs: 10800},
+					}).Error)
+				}
+				buckets, err := GetRecentPerfMetricSuccessBuckets("merge_fixture", 0, 14400, []string{"default"}, 6)
+				require.NoError(t, err)
+				require.Len(t, buckets, 1)
+				assert.EqualValues(t, 3600, buckets[0].BucketTs)
+				assert.EqualValues(t, 5, buckets[0].RequestCount)
+				assert.EqualValues(t, 3, buckets[0].SuccessCount)
 				var option Option
 				require.NoError(t, DB.Where(commonKeyCol+" = ?", "MergeFixture").First(&option).Error)
 				assert.Equal(t, "中文-preserved", option.Value)

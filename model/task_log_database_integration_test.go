@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"strings"
@@ -342,7 +343,7 @@ func testLogOtherDatabaseVisibility(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			stored := &Log{UserId: 19, Type: LogTypeConsume, Content: test.content, Other: test.stored}
+			stored := &Log{UserId: 19, Type: LogTypeConsume, RequestId: test.name, Content: test.content, Other: test.stored}
 			require.NoError(t, createLog(stored))
 			for _, role := range []struct {
 				name string
@@ -365,6 +366,31 @@ func testLogOtherDatabaseVisibility(t *testing.T) {
 					}
 					assert.JSONEq(t, role.want, loaded.Other)
 					assert.Equal(t, test.content, loaded.Content)
+					var exported []*Log
+					// Production filters qualify columns with "logs"; this fixture
+					// isolates tables with a random prefix, so expose the same alias.
+					originalLogDB := LOG_DB
+					LOG_DB = LOG_DB.Table(LOG_DB.NamingStrategy.TableName("Log") + " AS logs")
+					t.Cleanup(func() { LOG_DB = originalLogDB })
+					collect := func(log *Log) error {
+						exported = append(exported, log)
+						return nil
+					}
+					filter := LogFilter{RequestId: test.name, Type: LogTypeConsume}
+					if role.name == "user" {
+						require.NoError(t, StreamUserLogs(context.Background(), 20, filter, collect))
+						assert.Empty(t, exported, "another user cannot export this log")
+						require.NoError(t, StreamUserLogs(context.Background(), 19, filter, collect))
+					} else {
+						userRole := common.RoleAdminUser
+						if role.name == "root" {
+							userRole = common.RoleRootUser
+						}
+						require.NoError(t, StreamAllLogs(context.Background(), filter, userRole, collect))
+					}
+					require.Len(t, exported, 1)
+					assert.JSONEq(t, role.want, exported[0].Other)
+					assert.Equal(t, test.content, exported[0].Content)
 					if test.name == "scoped" {
 						var fields map[string]json.RawMessage
 						require.NoError(t, common.UnmarshalJsonStr(loaded.Other, &fields))

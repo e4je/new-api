@@ -419,11 +419,7 @@ export function UserAuthForm({
             <Button
               type='submit'
               className='mt-2 w-full justify-center gap-2'
-              disabled={
-                isLoading ||
-                aliyunCaptcha.initializing ||
-                (requiresLegalConsent && !agreedToLegal)
-              }
+              disabled={isLoading || aliyunCaptcha.initializing}
               id='aliyun-captcha-login-button'
             >
               {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
