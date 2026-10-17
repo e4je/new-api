@@ -117,16 +117,14 @@ func GetChannel(
 		return nil, err
 	}
 	abilities = filterAbilitiesByConstraints(abilities, model, filters)
-	if len(abilities) == 0 {
-		// Match the cache path: exact model names take precedence, then routing
-		// aliases may fall back while constraints still see the requested model.
-		if normalized := ratio_setting.RoutingMatchModelName(model); normalized != "" && normalized != model {
-			err = DB.Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, normalized, true).Order("priority DESC, weight DESC").Find(&abilities).Error
-			if err != nil {
-				return nil, err
-			}
-			abilities = filterAbilitiesByConstraints(abilities, model, filters)
+	// Like the memory cache, retry with the routing name (for example without
+	// @ modifiers) when no channel serves the exact name.
+	if normalized := ratio_setting.RoutingMatchModelName(model); len(abilities) == 0 && normalized != "" && normalized != model {
+		err = DB.Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, normalized, true).Order("priority DESC, weight DESC").Find(&abilities).Error
+		if err != nil {
+			return nil, err
 		}
+		abilities = filterAbilitiesByConstraints(abilities, model, filters)
 	}
 	if len(abilities) > 0 {
 		priorities := make([]int64, 0)
