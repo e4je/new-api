@@ -140,16 +140,20 @@ export function BotProtectionSection({
   }, [defaultValues, form])
 
   const onSubmit = async (data: BotProtectionFormValues) => {
-    const normalized = normalizeFormValues(data, baselineRef.current)
+    const current = baselineRef.current
+    const baseline = normalizeFormValues(buildFormDefaults(current), current)
+    const normalized = normalizeFormValues(data, current)
     const updates = Object.entries(normalized).filter(
       ([key, value]) =>
-        value !== baselineRef.current[key as keyof FlatBotProtectionDefaults]
+        value !== baseline[key as keyof FlatBotProtectionDefaults]
     )
-    const orderedUpdates = updates.sort(([leftKey], [rightKey]) => {
-      if (leftKey === 'aliyun_captcha.enabled') return 1
-      if (rightKey === 'aliyun_captcha.enabled') return -1
-      return 0
-    })
+    const saveAfterCredentials = ([key, value]: (typeof updates)[number]) =>
+      key === 'aliyun_captcha.enabled' ||
+      (key === 'TurnstileCheckEnabled' && value === true)
+    const orderedUpdates = updates.sort(
+      (left, right) =>
+        Number(saveAfterCredentials(left)) - Number(saveAfterCredentials(right))
+    )
 
     for (const [key, value] of orderedUpdates) {
       await updateOption.mutateAsync({ key, value: value ?? '' })
