@@ -260,17 +260,6 @@ func UpdateOption(c *gin.Context) {
 			common.ApiErrorT(c, "Cannot enable Turnstile verification. Enter the Turnstile settings first.")
 			return
 		}
-	case "aliyun_captcha.enabled":
-		aliyunCaptchaSetting := system_setting.GetAliyunCaptchaSettings()
-		if option.Value == "true" &&
-			(strings.TrimSpace(aliyunCaptchaSetting.Prefix) == "" ||
-				strings.TrimSpace(aliyunCaptchaSetting.SceneId) == "") {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": "无法启用阿里云验证码，请先填入身份标和场景 ID！",
-			})
-			return
-		}
 	case "TelegramOAuthEnabled":
 		if option.Value == "true" && !system_setting.GetTelegramSettings().IsConfigured() {
 			c.JSON(http.StatusOK, gin.H{

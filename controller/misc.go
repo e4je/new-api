@@ -46,7 +46,6 @@ func GetStatus(c *gin.Context) {
 	defer common.OptionMapRWMutex.RUnlock()
 
 	legalSetting := system_setting.GetLegalSettings()
-	aliyunCaptchaSetting := system_setting.GetAliyunCaptchaSettings()
 
 	data := gin.H{
 		"version":                     common.Version,
@@ -120,22 +119,14 @@ func GetStatus(c *gin.Context) {
 		"passkey_allow_insecure":      passkeySetting.AllowInsecureOrigin,
 		"passkey_user_verification":   passkeySetting.UserVerification,
 		"passkey_attachment":          passkeySetting.AttachmentPreference,
-		"aliyun_captcha": gin.H{
-			"enabled":    aliyunCaptchaSetting.Enabled,
-			"region":     aliyunCaptchaSetting.Region,
-			"prefix":     aliyunCaptchaSetting.Prefix,
-			"scene_id":   aliyunCaptchaSetting.SceneId,
-			"mode":       aliyunCaptchaSetting.Mode,
-			"script_url": aliyunCaptchaSetting.ScriptUrl,
-		},
-		"setup":                  constant.Setup,
-		"user_agreement_enabled": legalSetting.UserAgreement != "",
-		"privacy_policy_enabled": legalSetting.PrivacyPolicy != "",
-		"checkin_enabled":        operation_setting.GetCheckinSetting().Enabled,
-		"log_export_enabled":     operation_setting.GetLogSetting().UserExportEnabled,
-		"log_max_range_days":     operation_setting.GetLogSetting().MaxRangeDays,
-		"quota_remind_enabled":   common.QuotaRemindEnabled,
-		"quota_remind_threshold": common.QuotaRemindThreshold,
+		"setup":                       constant.Setup,
+		"user_agreement_enabled":      legalSetting.UserAgreement != "",
+		"privacy_policy_enabled":      legalSetting.PrivacyPolicy != "",
+		"checkin_enabled":             operation_setting.GetCheckinSetting().Enabled,
+		"log_export_enabled":          operation_setting.GetLogSetting().UserExportEnabled,
+		"log_max_range_days":          operation_setting.GetLogSetting().MaxRangeDays,
+		"quota_remind_enabled":        common.QuotaRemindEnabled,
+		"quota_remind_threshold":      common.QuotaRemindThreshold,
 	}
 
 	// 根据启用状态注入可选内容

@@ -38,7 +38,6 @@ import type { UpdateOptionRequest } from '../../types'
 import { BotProtectionSection } from '../bot-protection-section'
 
 const defaults = {
-  'aliyun_captcha.enabled': false,
   TurnstileCheckEnabled: false,
   TurnstileSiteKey: '',
   TurnstileSecretKey: '',

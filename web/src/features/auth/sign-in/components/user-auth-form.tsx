@@ -43,7 +43,6 @@ import { login, wechatLoginByCode } from '@/features/auth/api'
 import { LegalConsent } from '@/features/auth/components/legal-consent'
 import { OAuthProviders } from '@/features/auth/components/oauth-providers'
 import { loginFormSchema } from '@/features/auth/constants'
-import { useAliyunCaptcha } from '@/features/auth/hooks/use-aliyun-captcha'
 import { useAuthRedirect } from '@/features/auth/hooks/use-auth-redirect'
 import { useTurnstile } from '@/features/auth/hooks/use-turnstile'
 import { beginPasskeyLogin, finishPasskeyLogin } from '@/features/auth/passkey'
@@ -53,7 +52,7 @@ import {
   type PasskeyDomains,
 } from '@/features/auth/passkey/assertion'
 import { PasskeyDomainSelector } from '@/features/auth/passkey/components/passkey-domain-selector'
-import type { AliyunCaptchaStatus, AuthFormProps } from '@/features/auth/types'
+import type { AuthFormProps } from '@/features/auth/types'
 import { useStatus } from '@/hooks/use-status'
 import { handleServerError } from '@/lib/handle-server-error'
 import { isPasskeySupported as detectPasskeySupport } from '@/lib/passkey'
@@ -103,9 +102,6 @@ export function UserAuthForm({
     setTurnstileToken,
     validateTurnstile,
   } = useTurnstile()
-  const aliyunCaptchaConfig = (status?.aliyun_captcha ||
-    status?.data?.aliyun_captcha) as AliyunCaptchaStatus | undefined
-  const aliyunCaptcha = useAliyunCaptcha(aliyunCaptchaConfig)
   const { handleLoginResult } = useAuthRedirect()
 
   const hasUserAgreement = Boolean(status?.user_agreement_enabled)
@@ -163,19 +159,26 @@ export function UserAuthForm({
     )
   }, [status])
 
-  async function submitLogin(
-    data: z.infer<typeof loginFormSchema>,
-    submittedTurnstileToken: string,
-    aliyunCaptchaVerifyParam?: string
-  ) {
+  async function onSubmit(data: z.infer<typeof loginFormSchema>) {
+    if (requiresLegalConsent && !agreedToLegal) {
+      toast.error(legalConsentErrorMessage)
+      return
+    }
+
+    if (!validateTurnstile()) return
+
+    const submittedTurnstileToken = turnstileToken
+    if (isTurnstileEnabled) {
+      setTurnstileToken('')
+      setTurnstileWidgetKey((current) => current + 1)
+    }
+
     setIsLoading(true)
     try {
       const res = await login({
         username: data.username,
         password: data.password,
         turnstile: submittedTurnstileToken,
-        aliyunCaptchaVerifyParam,
-        requireAliyunCaptcha: aliyunCaptcha.enabled,
         passwordEncryptionEnabled: passwordLoginEncryptionEnabled,
       })
 
@@ -194,29 +197,6 @@ export function UserAuthForm({
     }
   }
 
-  async function onSubmit(data: z.infer<typeof loginFormSchema>) {
-    if (requiresLegalConsent && !agreedToLegal) {
-      toast.error(legalConsentErrorMessage)
-      return
-    }
-
-    if (!validateTurnstile()) return
-
-    const submittedTurnstileToken = turnstileToken
-    if (isTurnstileEnabled) {
-      setTurnstileToken('')
-      setTurnstileWidgetKey((current) => current + 1)
-    }
-
-    if (aliyunCaptcha.enabled) {
-      const handled = aliyunCaptcha.trigger((captchaVerifyParam) => {
-        return submitLogin(data, submittedTurnstileToken, captchaVerifyParam)
-      })
-      if (handled) return
-    }
-
-    await submitLogin(data, submittedTurnstileToken)
-  }
   const handleOpenWeChatDialog = () => {
     if (requiresLegalConsent && !agreedToLegal) {
       toast.error(legalConsentErrorMessage)
@@ -419,25 +399,11 @@ export function UserAuthForm({
             <Button
               type='submit'
               className='mt-2 w-full justify-center gap-2'
-              disabled={isLoading || aliyunCaptcha.initializing}
-              id='aliyun-captcha-login-button'
+              disabled={isLoading}
             >
               {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
               {t('Sign in')}
             </Button>
-
-            {aliyunCaptcha.enabled && (
-              <>
-                <div id={aliyunCaptcha.elementId} className='hidden' />
-                <button
-                  id={aliyunCaptcha.triggerButtonId}
-                  type='button'
-                  className='hidden'
-                  tabIndex={-1}
-                  aria-hidden='true'
-                />
-              </>
-            )}
 
             {/* Turnstile */}
             {isTurnstileEnabled && (

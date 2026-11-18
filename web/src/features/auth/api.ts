@@ -72,13 +72,7 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
         username: payload.username,
         ...passwordFields,
       },
-      {
-        headers: payload.aliyunCaptchaVerifyParam
-          ? { 'captcha-verify-param': payload.aliyunCaptchaVerifyParam }
-          : undefined,
-        skipBusinessError: true,
-        skipAuthRefresh: true,
-      }
+      { skipAuthRefresh: true }
     )
     if (payload.passwordEncryptionEnabled && !res.data?.success) {
       clearPasswordEncryptionCache()
